@@ -14,8 +14,8 @@ use glium::glutin::platform::windows::EventLoopExtWindows;
 use glium::texture::{RawImage2d, Texture2d};
 use glium::{Blend, DrawParameters, Frame, IndexBuffer, Program, VertexBuffer};
 
-use crate::renderer::Renderer;
-use crate::types::{Animation, Shape, Transformation};
+use crate::renderer::{Renderer, Transformation};
+use crate::types::{Animation, Shape};
 
 use self::glium::{Display, Surface};
 use glium::index::PrimitiveType;
@@ -118,7 +118,7 @@ fn draw(
             texture,
         };
 
-        state.draw_sprite(&command.animation, sprite, vec![], frame)
+        state.draw_sprite(&command.animation, sprite, Transformation::identity(), frame)
     }
 }
 

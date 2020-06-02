@@ -1,4 +1,3 @@
-use euclid::Transform2D;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -37,12 +36,6 @@ pub enum Action {
     Hit,
     RunScript(String),
     SetRadius(i8),
-}
-
-#[derive(Debug, Clone)]
-pub struct Transformation {
-    pub position: Transform2D<f32, (), ()>,
-    pub color: Color,
 }
 
 #[derive(Debug, Clone)]
