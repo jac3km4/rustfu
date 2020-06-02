@@ -2,7 +2,7 @@ use crate::frame_reader::FrameReader;
 use crate::types::{Animation, Color, Operation, Shape, Sprite, SpritePayload, TransformTable};
 use euclid::{vec2, Transform2D};
 
-pub trait Renderer {
+pub trait Render {
     fn render(&mut self, shape: &Shape, transform: Transformation) -> ();
 
     fn draw_sprite(&mut self, animation: &Animation, sprite: &Sprite, transform: Transformation, frame: u32) {

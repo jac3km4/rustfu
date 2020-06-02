@@ -20,11 +20,11 @@ use crate::opengl::{open_renderer, RenderCommand};
 use crate::resources::Resources;
 use crate::types::Animation;
 
-pub mod decoder;
+pub mod decode;
 pub mod frame_reader;
 pub mod location;
 pub mod opengl;
-pub mod renderer;
+pub mod render;
 pub mod resources;
 pub mod types;
 

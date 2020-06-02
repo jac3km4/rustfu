@@ -14,7 +14,7 @@ use glium::glutin::platform::windows::EventLoopExtWindows;
 use glium::texture::{RawImage2d, Texture2d};
 use glium::{Blend, DrawParameters, Frame, IndexBuffer, Program, VertexBuffer};
 
-use crate::renderer::{Renderer, Transformation};
+use crate::render::{Render, Transformation};
 use crate::types::{Animation, Shape};
 
 use self::glium::{Display, Surface};
@@ -122,7 +122,7 @@ fn draw(
     }
 }
 
-impl<'a> Renderer for RenderState<'a> {
+impl<'a> Render for RenderState<'a> {
     fn render(&mut self, shape: &Shape, transformation: Transformation) -> () {
         let display = &self.display;
         let vbo = self.vbos.entry(shape.id).or_insert_with(|| load_sprite(display, shape));
@@ -209,7 +209,10 @@ fn load_sprite(display: &Display, shape: &Shape) -> VertexBuffer<Vertex> {
             tex_coords: [shape.left, -shape.top],
         },
         Vertex {
-            position: [shape.offset_x + shape.width as f32, shape.offset_y + shape.height as f32],
+            position: [
+                shape.offset_x + shape.width as f32,
+                shape.offset_y + shape.height as f32,
+            ],
             tex_coords: [shape.right, -shape.top],
         },
     ];

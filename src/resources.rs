@@ -5,7 +5,7 @@ use std::path::Path;
 
 use zip::ZipArchive;
 
-use crate::decoder::*;
+use crate::decode::*;
 use crate::types::Animation;
 
 pub struct Resources<R: io::Read + io::Seek> {
