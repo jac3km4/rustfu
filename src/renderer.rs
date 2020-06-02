@@ -49,15 +49,11 @@ pub trait Renderer {
             None => match animation.shapes.get(&id) {
                 None => (),
                 Some(shape) => {
-                    let t = Transformation {
-                        position: transform
-                            .position
-                            .pre_translate(vec2(shape.offset_x, shape.offset_y))
-                            .post_scale(0.005, -0.005)
-                            .pre_scale(shape.width as f32, shape.height as f32),
+                    let scaled = Transformation {
+                        position: transform.position.post_scale(0.005, -0.005),
                         color: transform.color,
                     };
-                    self.render(shape, t);
+                    self.render(shape, scaled);
                 }
             },
             Some(sprite) => self.draw_sprite(animation, sprite, transform, frame),

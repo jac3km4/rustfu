@@ -197,19 +197,19 @@ fn create_program(display: &Display) -> Program {
 fn load_sprite(display: &Display, shape: &Shape) -> VertexBuffer<Vertex> {
     let vertices = [
         Vertex {
-            position: [0f32, 0f32],
+            position: [shape.offset_x, shape.offset_y],
             tex_coords: [shape.left, -shape.bottom],
         },
         Vertex {
-            position: [1f32, 0f32],
+            position: [shape.offset_x + shape.width as f32, shape.offset_y],
             tex_coords: [shape.right, -shape.bottom],
         },
         Vertex {
-            position: [0f32, 1f32],
+            position: [shape.offset_x, shape.offset_y + shape.height as f32],
             tex_coords: [shape.left, -shape.top],
         },
         Vertex {
-            position: [1f32, 1f32],
+            position: [shape.offset_x + shape.width as f32, shape.offset_y + shape.height as f32],
             tex_coords: [shape.right, -shape.top],
         },
     ];
