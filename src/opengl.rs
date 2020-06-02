@@ -26,23 +26,7 @@ pub struct RenderCommand {
     pub sprite: String,
 }
 
-struct RenderState<'a> {
-    pub display: &'a Display,
-    pub target: &'a mut Frame,
-    pub program: &'a Program,
-    pub vbos: &'a mut HashMap<i16, VertexBuffer<Vertex>>,
-    pub texture: &'a Texture2d,
-}
-
-#[derive(Copy, Clone)]
-struct Vertex {
-    position: [f32; 2],
-    tex_coords: [f32; 2],
-}
-
-implement_vertex!(Vertex, position, tex_coords);
-
-pub fn open_renderer(receiver: Receiver<RenderCommand>) -> () {
+pub fn run_renderer(receiver: Receiver<RenderCommand>) -> () {
     let events_loop: EventLoop<()> = EventLoop::new_any_thread();
     let wb = glium::glutin::window::WindowBuilder::new()
         .with_inner_size(glium::glutin::dpi::LogicalSize::new(768.0, 768.0))
@@ -82,7 +66,22 @@ pub fn open_renderer(receiver: Receiver<RenderCommand>) -> () {
         target.clear_color(0.0, 0.0, 0.0, 1.0);
 
         if let Some(cmd) = &current_cmd {
-            draw(&display, &mut target, &program, &mut cache, &texture, &cmd, frame);
+            if let Some(sprite) = cmd
+                .animation
+                .sprites
+                .values()
+                .find(|sprite| sprite.name.name.as_ref() == Some(&cmd.sprite))
+            {
+                let mut state = RenderState {
+                    display: &display,
+                    target: &mut target,
+                    program: &program,
+                    vbos: &mut cache,
+                    texture: &texture,
+                };
+
+                state.render_sprite(&cmd.animation, sprite, Transformation::identity(), frame)
+            }
         }
 
         if let Some(cmd) = receiver.try_recv().ok() {
@@ -95,32 +94,21 @@ pub fn open_renderer(receiver: Receiver<RenderCommand>) -> () {
     });
 }
 
-fn draw(
-    display: &Display,
-    target: &mut Frame,
-    program: &Program,
-    vbos: &mut HashMap<i16, VertexBuffer<Vertex>>,
-    texture: &Texture2d,
-    command: &RenderCommand,
-    frame: u32,
-) {
-    if let Some(sprite) = command
-        .animation
-        .sprites
-        .values()
-        .find(|sprite| sprite.name.name.as_ref() == Some(&command.sprite))
-    {
-        let mut state = RenderState {
-            display,
-            target,
-            program,
-            vbos,
-            texture,
-        };
-
-        state.draw_sprite(&command.animation, sprite, Transformation::identity(), frame)
-    }
+struct RenderState<'a> {
+    pub display: &'a Display,
+    pub target: &'a mut Frame,
+    pub program: &'a Program,
+    pub vbos: &'a mut HashMap<i16, VertexBuffer<Vertex>>,
+    pub texture: &'a Texture2d,
 }
+
+#[derive(Copy, Clone)]
+struct Vertex {
+    position: [f32; 2],
+    tex_coords: [f32; 2],
+}
+
+implement_vertex!(Vertex, position, tex_coords);
 
 impl<'a> Render for RenderState<'a> {
     fn render(&mut self, shape: &Shape, transformation: Transformation) -> () {

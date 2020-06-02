@@ -5,26 +5,26 @@ use euclid::{vec2, Transform2D};
 pub trait Render {
     fn render(&mut self, shape: &Shape, transform: Transformation) -> ();
 
-    fn draw_sprite(&mut self, animation: &Animation, sprite: &Sprite, transform: Transformation, frame: u32) {
+    fn render_sprite(&mut self, animation: &Animation, sprite: &Sprite, transform: Transformation, frame: u32) {
         let empty_table = &TransformTable::EMPTY;
         let table = animation.transform.as_ref().unwrap_or(empty_table);
         match &sprite.payload {
             SpritePayload::Single(sprite_id, _) => {
                 let ops = FrameReader::new(&sprite.frame_data, table).read_operations().unwrap();
                 let t = ops.iter().fold(transform, |acc, op| acc.apply(op));
-                self.draw_sprite_by_id(animation, *sprite_id, t, frame);
+                self.render_sprite_by_id(animation, *sprite_id, t, frame);
             }
             SpritePayload::SingleNoAction(sprite_id) => {
                 let ops = FrameReader::new(&sprite.frame_data, table).read_operations().unwrap();
                 let t = ops.iter().fold(transform, |acc, op| acc.apply(op));
-                self.draw_sprite_by_id(animation, *sprite_id, t, frame)
+                self.render_sprite_by_id(animation, *sprite_id, t, frame)
             }
             SpritePayload::SingleFrame(sprite_ids, _) => {
                 let mut reader = FrameReader::new(&sprite.frame_data, table);
                 for sprite_id in sprite_ids {
                     let ops = reader.read_operations().unwrap();
                     let t = ops.iter().fold(transform.clone(), |acc, op| acc.apply(op));
-                    self.draw_sprite_by_id(animation, *sprite_id, t, frame)
+                    self.render_sprite_by_id(animation, *sprite_id, t, frame)
                 }
             }
             SpritePayload::Indexed(frame_pos, sprite_info, action_info) => {
@@ -38,13 +38,13 @@ pub trait Render {
                 for sprite_id in sprite_info.iter().skip(current + 1).take(count) {
                     let ops = reader.read_operations().unwrap();
                     let t = ops.iter().fold(transform.clone(), |acc, op| acc.apply(op));
-                    self.draw_sprite_by_id(animation, *sprite_id, t, frame)
+                    self.render_sprite_by_id(animation, *sprite_id, t, frame)
                 }
             }
         }
     }
 
-    fn draw_sprite_by_id(&mut self, animation: &Animation, id: i16, transform: Transformation, frame: u32) {
+    fn render_sprite_by_id(&mut self, animation: &Animation, id: i16, transform: Transformation, frame: u32) {
         match animation.sprites.get(&id) {
             None => match animation.shapes.get(&id) {
                 None => (),
@@ -56,7 +56,7 @@ pub trait Render {
                     self.render(shape, scaled);
                 }
             },
-            Some(sprite) => self.draw_sprite(animation, sprite, transform, frame),
+            Some(sprite) => self.render_sprite(animation, sprite, transform, frame),
         }
     }
 }

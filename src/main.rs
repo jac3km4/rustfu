@@ -16,7 +16,7 @@ use clear_coat::common_attrs_cbs::*;
 use clear_coat::*;
 
 use crate::location::Location;
-use crate::opengl::{open_renderer, RenderCommand};
+use crate::opengl::{run_renderer, RenderCommand};
 use crate::resources::Resources;
 use crate::types::Animation;
 
@@ -76,7 +76,7 @@ fn show_main_window(location: Location) -> io::Result<()> {
     let (sender, receiver) = channel();
 
     thread::spawn(move || {
-        open_renderer(receiver);
+        run_renderer(receiver);
     });
 
     let anim_names = resources.npcs.list_animations().collect::<Vec<_>>();
