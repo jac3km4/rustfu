@@ -1,0 +1,13 @@
+[package]
+name = "rustfu"
+version = "0.1.0"
+authors = ["jac3km4"]
+edition = "2018"
+
+[dependencies]
+iced = "0.1"
+byteorder = "1.3.4"
+zip = { version = "0.5.5", default-features = false, features = [ "deflate" ] }
+image = { version = "0.23.4", default-features = false, features = [ "png" ] }
+glium = "0.27.0"
+euclid = "0.20.13"
