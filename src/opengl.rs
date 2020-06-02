@@ -129,10 +129,11 @@ impl<'a> Renderer for RenderState<'a> {
         let index_buffer =
             IndexBuffer::new(self.display, PrimitiveType::TrianglesList, &[0u16, 1, 2, 2, 1, 3]).unwrap();
 
-        let matrix: [[f32; 3]; 3] = transformation.position.into();
-        let colors: [f32; 4] = transformation.color.into();
+        let color = &transformation.color;
+        let matrix: [[f32; 2]; 3] = transformation.position.to_row_arrays();
+        let colors: [f32; 4] = [color.red, color.green, color.blue, color.alpha];
         let uniforms = uniform! {
-            matrix: matrix,
+            matrix: [[matrix[0][0], matrix[0][1], 0.], [matrix[1][0], matrix[1][1], 0.], [matrix[2][0], matrix[2][1], 1.]],
             colors: colors,
             tex: self.texture
         };
@@ -141,7 +142,7 @@ impl<'a> Renderer for RenderState<'a> {
             blend: Blend {
                 color: glium::BlendingFunction::Addition {
                     source: glium::LinearBlendingFactor::One,
-                    destination: glium::LinearBlendingFactor::OneMinusSourceAlpha
+                    destination: glium::LinearBlendingFactor::OneMinusSourceAlpha,
                 },
                 ..Blend::default()
             },

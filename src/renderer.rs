@@ -1,6 +1,6 @@
 use crate::frame_reader::FrameReader;
-use crate::types::{Animation, Operation, Shape, Sprite, SpritePayload, TransformTable, Transformation};
-use cgmath::{Matrix3, Vector4};
+use crate::types::{Animation, Color, Operation, Shape, Sprite, SpritePayload, TransformTable, Transformation};
+use euclid::Transform2D;
 
 pub trait Renderer {
     fn render(&mut self, shape: &Shape, transformation: Transformation) -> ();
@@ -63,22 +63,15 @@ pub trait Renderer {
 
 fn compute_transformation(shape: &Shape, operations: Vec<Operation>) -> Transformation {
     let initial = Transformation {
-        position: Matrix3::new(
-            1f32,
-            0f32,
-            0f32,
-            0f32,
-            1f32,
-            0f32,
+        position: Transform2D::create_translation(
             shape.offset_x / shape.width as f32,
             shape.offset_y / shape.height as f32,
-            1f32,
         ),
-        color: Vector4 {
-            x: 1f32,
-            y: 1f32,
-            z: 1f32,
-            w: 1f32,
+        color: Color {
+            red: 1f32,
+            green: 1f32,
+            blue: 1f32,
+            alpha: 1f32,
         },
     };
 
@@ -89,53 +82,31 @@ fn compute_transformation(shape: &Shape, operations: Vec<Operation>) -> Transfor
 
 fn apply_operation(transformation: Transformation, shape: &Shape, operation: &Operation) -> Transformation {
     match operation {
-        Operation::Translate(x, y) => {
-            let matrix = Matrix3::new(
-                1f32,
-                0f32,
-                0f32,
-                0f32,
-                1f32,
-                0f32,
-                *x / shape.width as f32,
-                *y / shape.height as f32,
-                1f32,
-            );
-            Transformation {
-                position: multiply(transformation.position, matrix),
-                color: transformation.color,
-            }
-        }
+        Operation::Translate(x, y) => Transformation {
+            position: transformation
+                .position
+                .post_translate(euclid::vec2(*x / shape.width as f32, *y / shape.height as f32)),
+            color: transformation.color,
+        },
         Operation::Rotate(rx0, ry0, rx1, ry1) => {
-            let matrix = Matrix3::new(*rx0, *ry0, 0f32, *rx1, *ry1, 0f32, 0f32, 0f32, 1f32);
+            let matrix = Transform2D::column_major(*rx0, *ry0, 0f32, *rx1, *ry1, 0f32);
             Transformation {
-                position: multiply(transformation.position, matrix),
+                position: transformation.position.post_transform(&matrix),
                 color: transformation.color,
             }
         }
-        Operation::Scale(sx, sy) => {
-            let matrix = Matrix3::new(
-                sx * shape.width as f32,
-                0f32,
-                0f32,
-                0f32,
-                sy * shape.height as f32,
-                0f32,
-                0f32,
-                0f32,
-                1f32,
-            );
-            Transformation {
-                position: multiply(transformation.position, matrix),
-                color: transformation.color,
-            }
-        }
+        Operation::Scale(sx, sy) => Transformation {
+            position: transformation
+                .position
+                .post_scale(sx * shape.width as f32, sy * shape.height as f32),
+            color: transformation.color,
+        },
         Operation::ColorMultiply(r, g, b, a) => {
-            let color = Vector4 {
-                x: transformation.color.x * *r,
-                y: transformation.color.y * *g,
-                z: transformation.color.z * *b,
-                w: transformation.color.w * *a,
+            let color = Color {
+                red: transformation.color.red * *r,
+                green: transformation.color.green * *g,
+                blue: transformation.color.blue * *b,
+                alpha: transformation.color.alpha * *a,
             };
             Transformation {
                 position: transformation.position,
@@ -143,11 +114,11 @@ fn apply_operation(transformation: Transformation, shape: &Shape, operation: &Op
             }
         }
         Operation::ColorAdd(r, g, b, a) => {
-            let color = Vector4 {
-                x: transformation.color.x + *r,
-                y: transformation.color.y + *g,
-                z: transformation.color.z + *b,
-                w: transformation.color.w + *a,
+            let color = Color {
+                red: transformation.color.red + *r,
+                green: transformation.color.green + *g,
+                blue: transformation.color.blue + *b,
+                alpha: transformation.color.alpha + *a,
             };
             Transformation {
                 position: transformation.position,
@@ -155,36 +126,4 @@ fn apply_operation(transformation: Transformation, shape: &Shape, operation: &Op
             }
         }
     }
-}
-
-fn multiply(a: Matrix3<f32>, b: Matrix3<f32>) -> Matrix3<f32> {
-    let a00 = a.x.x;
-    let a01 = a.x.y;
-    let a02 = a.x.z;
-    let a10 = a.y.x;
-    let a11 = a.y.y;
-    let a12 = a.y.z;
-    let a20 = a.z.x;
-    let a21 = a.z.y;
-    let a22 = a.z.z;
-    let b00 = b.x.x;
-    let b01 = b.x.y;
-    let b02 = b.x.z;
-    let b10 = b.y.x;
-    let b11 = b.y.y;
-    let b12 = b.y.z;
-    let b20 = b.z.x;
-    let b21 = b.z.y;
-    let b22 = b.z.z;
-    Matrix3::new(
-        a00 * b00 + a01 * b10 + a02 * b20,
-        a00 * b01 + a01 * b11 + a02 * b21,
-        a00 * b02 + a01 * b12 + a02 * b22,
-        a10 * b00 + a11 * b10 + a12 * b20,
-        a10 * b01 + a11 * b11 + a12 * b21,
-        a10 * b02 + a11 * b12 + a12 * b22,
-        a20 * b00 + a21 * b10 + a22 * b20,
-        a20 * b01 + a21 * b11 + a22 * b21,
-        a20 * b02 + a21 * b12 + a22 * b22,
-    )
 }

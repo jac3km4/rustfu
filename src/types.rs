@@ -1,4 +1,4 @@
-use cgmath::{Matrix3, Vector4};
+use euclid::Transform2D;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -41,8 +41,8 @@ pub enum Action {
 
 #[derive(Debug, Clone)]
 pub struct Transformation {
-    pub position: Matrix3<f32>,
-    pub color: Vector4<f32>,
+    pub position: Transform2D<f32, (), ()>,
+    pub color: Color,
 }
 
 #[derive(Debug, Clone)]
