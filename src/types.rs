@@ -187,8 +187,8 @@ pub struct Shape {
     pub left: f32,
     pub bottom: f32,
     pub right: f32,
-    pub width: i16,
-    pub height: i16,
+    pub width: u16,
+    pub height: u16,
     pub offset_x: f32,
     pub offset_y: f32,
 }

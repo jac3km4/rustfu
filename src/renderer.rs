@@ -91,7 +91,7 @@ impl Transformation {
                 color: self.color,
             },
             Operation::Rotate(rx0, ry0, rx1, ry1) => {
-                let matrix = Transform2D::column_major(rx0, ry0, 0f32, rx1, ry1, 0f32);
+                let matrix = Transform2D::column_major(rx0, rx1, 0f32, ry0, ry1, 0f32);
                 Transformation {
                     position: self.position.post_transform(&matrix),
                     color: self.color,

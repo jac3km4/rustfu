@@ -165,8 +165,8 @@ impl Decode for Shape {
         let left = cursor.decode::<u16>()? as f32 / 65535f32;
         let bottom = cursor.decode::<u16>()? as f32 / 65535f32;
         let right = cursor.decode::<u16>()? as f32 / 65535f32;
-        let width = cursor.decode::<i16>()?;
-        let height = cursor.decode::<i16>()?;
+        let width = cursor.decode::<u16>()?;
+        let height = cursor.decode::<u16>()?;
         let offset_x = cursor.decode::<f32>()?;
         let offset_y = cursor.decode::<f32>()?;
         Ok(Shape {
