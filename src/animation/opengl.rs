@@ -18,8 +18,8 @@ use glium::glutin::platform::windows::EventLoopExtWindows;
 use glium::texture::{RawImage2d, Texture2d};
 use glium::{Blend, DrawParameters, Frame, IndexBuffer, Program, VertexBuffer};
 
-use crate::render::{Render, SpriteTransform};
-use crate::types::{Animation, Shape, Sprite};
+use crate::animation::render::{Render, SpriteTransform};
+use crate::animation::types::{Animation, Shape, Sprite};
 use euclid::Transform2D;
 
 use self::glium::{Display, Surface};

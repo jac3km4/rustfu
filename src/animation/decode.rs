@@ -3,7 +3,7 @@ use std::io;
 
 use byteorder::*;
 
-use crate::types::*;
+use crate::animation::types::*;
 
 pub trait Decode
 where

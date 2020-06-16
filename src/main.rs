@@ -3,23 +3,24 @@
 extern crate glium;
 extern crate image;
 
+use std::fmt::Display;
 use std::fs::File;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 
-use crate::opengl::{run_renderer, RenderCommand};
-use crate::resources::{AnimationArchive, Resources};
-use crate::types::Animation;
+use crate::animation::opengl::{run_renderer, RenderCommand};
+use crate::animation::types::Animation;
+use crate::data::resources::Resources;
+use crate::data::translations::Translation;
 use iced::*;
 use image::RgbaImage;
 use std::borrow::{Borrow, BorrowMut};
+use wakfudecrypt::types::interactive_element_model::InteractiveElementModel;
+use wakfudecrypt::types::monster::Monster;
+use wakfudecrypt::types::pet::Pet;
 
-pub mod decode;
-pub mod frame_reader;
-pub mod opengl;
-pub mod render;
-pub mod resources;
-pub mod types;
+pub mod animation;
+pub mod data;
 
 pub fn main() {
     let resources = Resources::open(&std::env::current_dir().unwrap()).unwrap();
@@ -49,11 +50,12 @@ impl AnimationType {
 
 struct State {
     input: text_input::State,
-    type_list: SelectList,
-    animation_list: SelectList,
-    record_list: SelectList,
+    type_list: SelectList<String>,
+    animation_list: SelectList<NamedOption<String>>,
+    record_list: SelectList<String>,
     filter: String,
     selected_type: AnimationType,
+    options: Vec<NamedOption<String>>,
     resources: Resources<File>,
     sender: Sender<RenderCommand>,
     animation: Option<Animation>,
@@ -82,12 +84,13 @@ impl Application for State {
             record_list: SelectList::new(vec![]),
             filter: "".to_owned(),
             selected_type: AnimationType::Npc,
+            options: vec![],
             resources: flags.0,
             sender: flags.1,
             animation: None,
             image: None,
         };
-        let cmd = initial.borrow_mut().update(Message::Reload);
+        let cmd = initial.borrow_mut().update(Message::TypeSelected(AnimationType::Npc));
         (initial, cmd)
     }
 
@@ -100,10 +103,10 @@ impl Application for State {
             Message::Reload => {
                 let filter = &self.filter.clone();
                 let animations = self
-                    .selected_archive()
-                    .list_animations()
-                    .filter(|str| str.contains(filter))
-                    .map(|s| s.to_owned())
+                    .options
+                    .iter()
+                    .filter(|opt| opt.0.contains(filter))
+                    .cloned()
                     .collect();
                 self.animation_list.set_options(animations);
             }
@@ -113,28 +116,85 @@ impl Application for State {
             }
             Message::TypeSelected(t) => {
                 self.selected_type = t;
+                match self.selected_type {
+                    AnimationType::Npc => {
+                        self.options = self
+                            .resources
+                            .load_data::<Monster>()
+                            .unwrap()
+                            .elements
+                            .iter()
+                            .map(|m| {
+                                let name = self
+                                    .resources
+                                    .translations
+                                    .get(Translation::Monster, &format!("{}", m.id));
+                                NamedOption(
+                                    name.cloned().unwrap_or(format!("Monster {}", m.id)),
+                                    format!("{}", m.gfx),
+                                )
+                            })
+                            .collect();
+                    }
+                    AnimationType::Interactive => {
+                        self.options = self
+                            .resources
+                            .load_data::<InteractiveElementModel>()
+                            .unwrap()
+                            .elements
+                            .iter()
+                            .map(|e| {
+                                let name = self
+                                    .resources
+                                    .translations
+                                    .get(Translation::InteractiveElementView, &format!("{}", e.id));
+                                NamedOption(name.cloned().unwrap_or(format!("IE {}", e.id)), format!("{}", e.gfx))
+                            })
+                            .collect();
+                    }
+                    AnimationType::Pet => {
+                        self.options = self
+                            .resources
+                            .load_data::<Pet>()
+                            .unwrap()
+                            .elements
+                            .iter()
+                            .map(|p| {
+                                let name = self
+                                    .resources
+                                    .translations
+                                    .get(Translation::Item, &format!("{}", p.item_ref_id));
+                                NamedOption(
+                                    name.cloned().unwrap_or(format!("Pet {}", p.id)),
+                                    format!("{}", p.gfx_id),
+                                )
+                            })
+                            .collect();
+                    }
+                }
                 self.update(Message::Reload);
             }
             Message::AnimationSelected(i) => {
                 let archive = match self.selected_type {
-                    AnimationType::Npc => &mut self.resources.npcs,
-                    AnimationType::Interactive => &mut self.resources.interactives,
-                    AnimationType::Pet => &mut self.resources.pets,
+                    AnimationType::Npc => &mut self.resources.npc_animations,
+                    AnimationType::Interactive => &mut self.resources.interactive_animations,
+                    AnimationType::Pet => &mut self.resources.pet_animations,
                 };
                 let name = self.animation_list.options.get(i).unwrap();
-                let animation = archive.load_animation(name).unwrap();
-                let texture_id = animation.texture.clone().unwrap().name;
-                let options = animation
-                    .borrow()
-                    .sprites
-                    .iter()
-                    .filter_map(|(_, sprite)| sprite.name.name.clone())
-                    .collect::<Vec<_>>();
+                if let Result::Ok(animation) = archive.load_animation(&name.1) {
+                    let texture_id = animation.texture.clone().unwrap().name;
+                    let options = animation
+                        .borrow()
+                        .sprites
+                        .iter()
+                        .filter_map(|(_, sprite)| sprite.name.name.clone())
+                        .collect::<Vec<_>>();
 
-                self.image = Some(archive.load_texture(&texture_id).unwrap());
-                self.animation = Some(animation);
-                self.record_list.set_options(options);
-                self.animation_list.update(SelectMessage(i))
+                    self.image = Some(archive.load_texture(&texture_id).unwrap());
+                    self.animation = Some(animation);
+                    self.record_list.set_options(options);
+                    self.animation_list.update(SelectMessage(i))
+                }
             }
             Message::RecordSelected(i) => {
                 let State {
@@ -196,31 +256,30 @@ impl Application for State {
     }
 }
 
-impl State {
-    fn selected_archive(&mut self) -> &mut AnimationArchive<File> {
-        match self.selected_type {
-            AnimationType::Npc => &mut self.resources.npcs,
-            AnimationType::Interactive => &mut self.resources.interactives,
-            AnimationType::Pet => &mut self.resources.pets,
-        }
+#[derive(Debug, Clone)]
+struct NamedOption<A>(String, A);
+
+impl<A: Display> Display for NamedOption<A> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
-struct SelectList {
+struct SelectList<A> {
     scroll: scrollable::State,
     buttons: Vec<button::State>,
-    options: Vec<String>,
+    options: Vec<A>,
     selected: usize,
 }
 
 #[derive(Debug, Clone)]
 struct SelectMessage(usize);
 
-impl SelectList {
-    fn new(options: Vec<String>) -> Self {
+impl<A: Display> SelectList<A> {
+    fn new(options: Vec<A>) -> Self {
         SelectList {
             scroll: scrollable::State::default(),
-            buttons: SelectList::default_buttons(options.len()),
+            buttons: SelectList::<A>::default_buttons(options.len()),
             options,
             selected: 0,
         }
@@ -230,8 +289,8 @@ impl SelectList {
         self.selected = message.0;
     }
 
-    fn set_options(&mut self, options: Vec<String>) {
-        self.buttons = SelectList::default_buttons(options.len());
+    fn set_options(&mut self, options: Vec<A>) {
+        self.buttons = SelectList::<A>::default_buttons(options.len());
         self.options = options;
     }
 
@@ -248,7 +307,7 @@ impl SelectList {
                 .zip(options)
                 .enumerate()
                 .fold(Column::new().padding(2), |col, (i, (state, option))| {
-                    let button = Button::new(state, Text::new(option.to_owned()))
+                    let button = Button::new(state, Text::new(format!("{}", option)))
                         .on_press(SelectMessage(i))
                         .width(Length::Fill)
                         .style(theme::SelectOption);

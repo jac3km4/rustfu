@@ -1,7 +1,7 @@
 use euclid::Transform2D;
 
-use crate::frame_reader::FrameReader;
-use crate::types::{Animation, Color, Shape, Sprite, SpritePayload, TransformTable};
+use crate::animation::frame_reader::FrameReader;
+use crate::animation::types::{Animation, Color, Shape, Sprite, SpritePayload, TransformTable};
 
 pub trait Render {
     fn render(&mut self, shape: &Shape, transform: SpriteTransform) -> ();
@@ -9,17 +9,15 @@ pub trait Render {
     fn render_sprite(&mut self, animation: &Animation, sprite: &Sprite, transform: SpriteTransform, frame: u32) {
         let empty_table = &TransformTable::EMPTY;
         let table = animation.transform.as_ref().unwrap_or(empty_table);
+        let mut reader = FrameReader::new(&sprite.frame_data, table);
         match &sprite.payload {
             SpritePayload::Single(sprite_id, _) => {
-                let mut reader = FrameReader::new(&sprite.frame_data, table);
                 self.render_by_id(animation, *sprite_id, &transform, &mut reader, frame);
             }
             SpritePayload::SingleNoAction(sprite_id) => {
-                let mut reader = FrameReader::new(&sprite.frame_data, table);
                 self.render_by_id(animation, *sprite_id, &transform, &mut reader, frame);
             }
             SpritePayload::SingleFrame(sprite_ids, _) => {
-                let mut reader = FrameReader::new(&sprite.frame_data, table);
                 for sprite_id in sprite_ids {
                     self.render_by_id(animation, *sprite_id, &transform, &mut reader, frame);
                 }
@@ -30,7 +28,6 @@ pub trait Render {
                 let offset = *frame_pos.get(index).unwrap() as usize;
                 let current = *frame_pos.get(index + 1).unwrap() as usize;
                 let count = *sprite_info.get(current).unwrap() as usize;
-                let mut reader = FrameReader::new(&sprite.frame_data, table);
                 reader.seek(offset);
                 for sprite_id in sprite_info.iter().skip(current + 1).take(count) {
                     self.render_by_id(animation, *sprite_id, &transform, &mut reader, frame);
