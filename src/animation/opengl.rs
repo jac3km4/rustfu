@@ -90,7 +90,7 @@ fn draw_parameters<'b>() -> DrawParameters<'b> {
 }
 
 fn viewport_transform(viewport: (u32, u32)) -> Transform2D<f32, (), ()> {
-    Transform2D::create_scale(BASE_SCALE / viewport.0 as f32, -BASE_SCALE / viewport.1 as f32)
+    Transform2D::create_scale(BASE_SCALE / viewport.0 as f32, BASE_SCALE / viewport.1 as f32)
 }
 
 fn load_sprite<F: Facade>(display: &F, shape: &Shape) -> VertexBuffer<Vertex> {
