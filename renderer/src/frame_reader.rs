@@ -1,5 +1,5 @@
-use crate::animation::render::SpriteTransform;
-use crate::animation::types::{FrameData, TransformTable};
+use crate::render::SpriteTransform;
+use crate::types::{FrameData, TransformTable};
 
 pub struct FrameReader<'a> {
     data: &'a FrameData,

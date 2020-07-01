@@ -1,6 +1,4 @@
 #![windows_subsystem = "windows"]
-#[macro_use]
-extern crate glium;
 extern crate image;
 
 use std::fmt::Display;
@@ -8,25 +6,26 @@ use std::fs::File;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 
-use crate::animation::opengl::{run_renderer, RenderCommand};
-use crate::animation::types::Animation;
-use crate::data::resources::Resources;
-use crate::data::translations::Translation;
+use crate::resources::Resources;
+use crate::translations::Translation;
 use iced::*;
 use image::RgbaImage;
+use renderer::{run_renderer, RenderCommand};
+use rustfu_renderer::types::Animation;
 use std::borrow::{Borrow, BorrowMut};
 use wakfudecrypt::types::interactive_element_model::InteractiveElementModel;
 use wakfudecrypt::types::monster::Monster;
 use wakfudecrypt::types::pet::Pet;
 
-pub mod animation;
-pub mod data;
+pub mod renderer;
+pub mod resources;
+pub mod translations;
 
 pub fn main() {
     let resources = Resources::open(&std::env::current_dir().unwrap()).unwrap();
     let (sender, receiver) = channel();
 
-    thread::spawn(move || run_renderer(receiver));
+    thread::spawn(move || run_renderer(receiver).unwrap());
     State::run(Settings::with_flags((resources, sender)));
 }
 

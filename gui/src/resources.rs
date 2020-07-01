@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 
 use zip::ZipArchive;
 
-use crate::animation::types::Animation;
-use crate::data::translations::Translations;
+use crate::translations::Translations;
+use rustfu_renderer::types::Animation;
 use wakfudecrypt::document::Document;
 use wakfudecrypt::BinaryData;
 
@@ -55,7 +55,7 @@ impl AnimationArchive<File> {
 
     pub fn load_animation(&mut self, id: &str) -> io::Result<Animation> {
         let mut entry = self.archive.by_name(&format!("{}.anm", id))?;
-        crate::animation::decode::Decode::decode(&mut entry)
+        rustfu_renderer::decode::Decode::decode(&mut entry)
     }
 
     pub fn load_texture(&mut self, id: &str) -> io::Result<image::RgbaImage> {

@@ -1,14 +1,5 @@
-[package]
-name = "rustfu"
-version = "0.1.0"
-authors = ["jac3km4"]
-edition = "2018"
-
-[dependencies]
-byteorder = "1.3.4"
-zip = { version = "0.5.6", default-features = false, features = [ "deflate" ] }
-image = { version = "0.23.6", default-features = false, features = [ "png" ] }
-iced = "0.1"
-glium = "0.27.0"
-euclid = "0.20.13"
-wakfudecrypt = { git = "https://gitlab.com/re.wakfu/wakfudecrypt-rs.git", rev = "56be4375d574c402abee0fb7cf5ef0cd08a20c6a" }
+[workspace]
+members = [
+  "gui",
+  "renderer",
+]

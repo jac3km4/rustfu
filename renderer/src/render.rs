@@ -1,7 +1,7 @@
 use euclid::Transform2D;
 
-use crate::animation::frame_reader::FrameReader;
-use crate::animation::types::{Animation, Color, Shape, Sprite, SpritePayload, TransformTable};
+use crate::frame_reader::FrameReader;
+use crate::types::{Animation, Color, Shape, Sprite, SpritePayload, TransformTable};
 
 pub trait Render {
     fn render(&mut self, shape: &Shape, transform: SpriteTransform) -> ();

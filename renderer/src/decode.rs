@@ -3,19 +3,13 @@ use std::io;
 
 use byteorder::*;
 
-use crate::animation::types::*;
+use crate::types::*;
 
-pub trait Decode
-where
-    Self: Sized,
-{
+pub trait Decode: Sized {
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self>;
 }
 
-pub trait DecodeExt
-where
-    Self: io::Read + Sized,
-{
+pub trait DecodeExt: io::Read + Sized {
     fn decode<A: Decode>(&mut self) -> io::Result<A> {
         Decode::decode(self)
     }
