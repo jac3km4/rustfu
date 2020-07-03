@@ -293,8 +293,8 @@ impl<'a, C: HasContext> Render for RenderState<'a, C> {
         } = transformation.color.color();
 
         unsafe {
-            gl.uniform_matrix_3_f32_slice(Some(locations.matrix.clone()), false, &matrix_data);
-            gl.uniform_4_f32(Some(locations.color.clone()), red, green, blue, alpha);
+            gl.uniform_matrix_3_f32_slice(Some(&locations.matrix), false, &matrix_data);
+            gl.uniform_4_f32(Some(&locations.color), red, green, blue, alpha);
             gl.bind_vertex_array(Some(vert.vao));
             gl.draw_elements(glow::TRIANGLES, 6, glow::UNSIGNED_BYTE, 0)
         }

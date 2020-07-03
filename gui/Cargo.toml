@@ -8,6 +8,6 @@ iced = "0.1"
 zip = { version = "0.5.6", default-features = false, features = [ "deflate" ] }
 image = { version = "0.23.6", default-features = false, features = [ "png" ] }
 glutin = { version = "0.24" }
-glow = { version = "0.4.0", default-features = false, features = [ "glutin" ] }
+glow = { version = "0.5.0", default-features = false, features = [ "glutin" ] }
 wakfudecrypt = { git = "https://gitlab.com/re.wakfu/wakfudecrypt-rs.git", rev = "56be4375d574c402abee0fb7cf5ef0cd08a20c6a" }
 rustfu-renderer = { path = "../renderer" }

@@ -345,21 +345,6 @@ dependencies = [
 
 [[package]]
 name = "cocoa"
-version = "0.19.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f29f7768b2d1be17b96158e3285951d366b40211320fb30826a76cb7a0da6400"
-dependencies = [
- "bitflags",
- "block",
- "core-foundation 0.6.4",
- "core-graphics 0.17.3",
- "foreign-types",
- "libc",
- "objc",
-]
-
-[[package]]
-name = "cocoa"
 version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0c49e86fc36d5704151f5996b7b3795385f50ce09e3be0f47a0cfde869681cf8"
@@ -590,12 +575,6 @@ name = "discard"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "212d0f5754cb6769937f4501cc0e67f4f4483c8d2c3e1e922ee9edbe4ab4c7c0"
-
-[[package]]
-name = "dispatch"
-version = "0.1.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04e93ca78226c51902d7aa8c12c988338aadd9e85ed9c6be8aaac39192ff3605"
 
 [[package]]
 name = "dispatch"
@@ -1087,7 +1066,7 @@ dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
  "block",
- "cocoa 0.20.2",
+ "cocoa",
  "copyless",
  "core-graphics 0.19.2",
  "foreign-types",
@@ -1148,6 +1127,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "gl_generator"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a95dfc23a2b4a9a2f5ab41d194f8bfda3cabec42af4e39f08c339eb2a0c124d"
+dependencies = [
+ "khronos_api",
+ "log",
+ "xml-rs",
+]
+
+[[package]]
 name = "glam"
 version = "0.8.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1155,42 +1145,15 @@ checksum = "b00572b5b10070ac495be20a25b4c8d379d20bcdec8ea0c870022b620ec79b20"
 
 [[package]]
 name = "glow"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31aed196700daf16e1241d819ff4a4855a78ee0cddb051948d50b9213deec82f"
+checksum = "3a86c1086850aab0767f4ef01df03c7bdb1cefe18af303571ec144115b733b7b"
 dependencies = [
- "gl_generator",
- "glutin 0.22.1",
+ "gl_generator 0.14.0",
+ "glutin",
  "slotmap",
  "stdweb",
  "webgl_stdweb",
-]
-
-[[package]]
-name = "glutin"
-version = "0.22.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "639246c8838b02a83b9339bd87da3714e73e52ecfaa758e15d761eb77b2290b5"
-dependencies = [
- "android_glue",
- "cgl",
- "cocoa 0.19.1",
- "core-foundation 0.6.4",
- "core-graphics 0.17.3",
- "glutin_egl_sys",
- "glutin_emscripten_sys",
- "glutin_gles2_sys",
- "glutin_glx_sys",
- "glutin_wgl_sys",
- "lazy_static 1.4.0",
- "libloading 0.5.2",
- "log",
- "objc",
- "osmesa-sys",
- "parking_lot 0.10.2",
- "wayland-client",
- "winapi 0.3.9",
- "winit 0.20.0",
 ]
 
 [[package]]
@@ -1201,7 +1164,7 @@ checksum = "9a9666c8fd9afd008f6559e2468c35e11aad1d110d525bb3b354e4138ec0e20f"
 dependencies = [
  "android_glue",
  "cgl",
- "cocoa 0.20.2",
+ "cocoa",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
  "glutin_egl_sys",
@@ -1217,7 +1180,7 @@ dependencies = [
  "parking_lot 0.10.2",
  "wayland-client",
  "winapi 0.3.9",
- "winit 0.22.2",
+ "winit",
 ]
 
 [[package]]
@@ -1226,7 +1189,7 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "772edef3b28b8ad41e4ea202748e65eefe8e5ffd1f4535f1219793dbb20b3d4c"
 dependencies = [
- "gl_generator",
+ "gl_generator 0.13.1",
  "winapi 0.3.9",
 ]
 
@@ -1242,7 +1205,7 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "07e853d96bebcb8e53e445225c3009758c6f5960d44f2543245f6f07b567dae0"
 dependencies = [
- "gl_generator",
+ "gl_generator 0.13.1",
  "objc",
 ]
 
@@ -1252,7 +1215,7 @@ version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08c243de74d6cf5ea100c788826d2fb9319de315485dd4b310811a663b3809c3"
 dependencies = [
- "gl_generator",
+ "gl_generator 0.13.1",
  "x11-dl",
 ]
 
@@ -1262,7 +1225,7 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a93dba7ee3a0feeac0f437141ff25e71ce2066bcf1a706acab1559ffff94eb6a"
 dependencies = [
- "gl_generator",
+ "gl_generator 0.13.1",
 ]
 
 [[package]]
@@ -1461,7 +1424,7 @@ dependencies = [
  "log",
  "winapi 0.3.9",
  "window_clipboard",
- "winit 0.22.2",
+ "winit",
 ]
 
 [[package]]
@@ -1737,7 +1700,7 @@ checksum = "e198a0ee42bdbe9ef2c09d0b9426f3b2b47d90d93a4a9b0395c4cea605e92dc0"
 dependencies = [
  "bitflags",
  "block",
- "cocoa 0.20.2",
+ "cocoa",
  "core-graphics 0.19.2",
  "foreign-types",
  "log",
@@ -2530,7 +2493,7 @@ name = "rustfu-gui"
 version = "0.1.0"
 dependencies = [
  "glow",
- "glutin 0.24.1",
+ "glutin",
  "iced",
  "image",
  "rustfu-renderer",
@@ -2721,9 +2684,9 @@ checksum = "c111b5bd5695e56cffe5129854aa230b39c93a305372fdbb2668ca2394eea9f8"
 
 [[package]]
 name = "slotmap"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "759fd553261805f128e2900bf69ab3d034260bc338caf7f0ee54dbf035c85acd"
+checksum = "c46a3482db8f247956e464d783693ece164ca056e6e67563ee5505bdb86452cd"
 
 [[package]]
 name = "smallvec"
@@ -3454,45 +3417,16 @@ dependencies = [
 
 [[package]]
 name = "winit"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ba128780050481f453bec2a115b916dbc6ae79c303dee9bad8b9080bdccd4f5"
-dependencies = [
- "android_glue",
- "bitflags",
- "cocoa 0.19.1",
- "core-foundation 0.6.4",
- "core-graphics 0.17.3",
- "core-video-sys",
- "dispatch 0.1.4",
- "instant",
- "lazy_static 1.4.0",
- "libc",
- "log",
- "mio",
- "mio-extras",
- "objc",
- "parking_lot 0.10.2",
- "percent-encoding",
- "raw-window-handle",
- "smithay-client-toolkit",
- "wayland-client",
- "winapi 0.3.9",
- "x11-dl",
-]
-
-[[package]]
-name = "winit"
 version = "0.22.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e4ccbf7ddb6627828eace16cacde80fc6bf4dbb3469f88487262a02cf8e7862"
 dependencies = [
  "bitflags",
- "cocoa 0.20.2",
+ "cocoa",
  "core-foundation 0.7.0",
  "core-graphics 0.19.2",
  "core-video-sys",
- "dispatch 0.2.0",
+ "dispatch",
  "instant",
  "lazy_static 1.4.0",
  "libc",
