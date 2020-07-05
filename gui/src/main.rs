@@ -10,9 +10,11 @@ use crate::resources::Resources;
 use crate::translations::Translation;
 use iced::*;
 use image::RgbaImage;
+use nfd::Response;
 use renderer::{run_renderer, RenderCommand};
 use rustfu_renderer::types::Animation;
 use std::borrow::{Borrow, BorrowMut};
+use std::path::Path;
 use wakfudecrypt::types::interactive_element_model::InteractiveElementModel;
 use wakfudecrypt::types::monster::Monster;
 use wakfudecrypt::types::pet::Pet;
@@ -22,11 +24,17 @@ pub mod resources;
 pub mod translations;
 
 pub fn main() {
-    let resources = Resources::open(&std::env::current_dir().unwrap()).unwrap();
-    let (sender, receiver) = channel();
+    let result = nfd::open_pick_folder(None).unwrap();
+    match result {
+        Response::Okay(path) => {
+            let resources = Resources::open(Path::new(&path)).unwrap();
+            let (sender, receiver) = channel();
 
-    thread::spawn(move || run_renderer(receiver).unwrap());
-    State::run(Settings::with_flags((resources, sender)));
+            thread::spawn(move || run_renderer(receiver).unwrap());
+            State::run(Settings::with_flags((resources, sender)));
+        }
+        _ => (),
+    }
 }
 
 #[derive(Debug, Clone)]

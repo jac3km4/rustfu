@@ -5,6 +5,7 @@ edition = "2018"
 
 [dependencies]
 iced = "0.1"
+nfd = "0.0.4"
 zip = { version = "0.5.6", default-features = false, features = [ "deflate" ] }
 image = { version = "0.23.6", default-features = false, features = [ "png" ] }
 glutin = { version = "0.24" }
