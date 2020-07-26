@@ -6,9 +6,9 @@ edition = "2018"
 [dependencies]
 iced = "0.1"
 nfd = "0.0.4"
-zip = { version = "0.5.6", default-features = false, features = [ "deflate" ] }
-image = { version = "0.23.6", default-features = false, features = [ "png" ] }
+zip = { version = "0.5", default-features = false, features = [ "deflate" ] }
+image = { version = "0.23", default-features = false, features = [ "png" ] }
 glutin = { version = "0.24" }
-glow = { version = "0.5.0", default-features = false, features = [ "glutin" ] }
-wakfudecrypt = { git = "https://gitlab.com/re.wakfu/wakfudecrypt-rs.git", rev = "56be4375d574c402abee0fb7cf5ef0cd08a20c6a" }
+glow = { version = "0.5", default-features = false, features = [ "glutin" ] }
+wakfudecrypt = { git = "https://gitlab.com/re.wakfu/wakfudecrypt-rs.git", rev = "eefa41c2a13bc78925a89d60edf4c2a85cb4d645" }
 rustfu-renderer = { path = "../renderer" }
