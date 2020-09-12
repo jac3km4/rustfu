@@ -49,7 +49,7 @@ pub struct AnimationArchive<R: io::Read + io::Seek> {
 
 impl AnimationArchive<File> {
     pub fn open(path: &Path) -> io::Result<AnimationArchive<File>> {
-        let archive = ZipArchive::new(File::open(path)?).unwrap();
+        let archive = ZipArchive::new(File::open(path)?)?;
         Ok(AnimationArchive { archive })
     }
 

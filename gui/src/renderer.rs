@@ -1,4 +1,4 @@
-use rustfu_renderer::gl::{DefaultLocations, Program, RenderState, Texture, SpriteVertex};
+use rustfu_renderer::gl::{DefaultLocations, Program, RenderState, SpriteVertex, Texture};
 use rustfu_renderer::types::{Animation, Sprite};
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -31,9 +31,10 @@ pub fn run_renderer(receiver: Receiver<RenderCommand>) -> Result<(), String> {
         .build_windowed(wb, &event_loop)
         .expect("Could not create a window");
     let windowed_context = unsafe { windowed_context.make_current().expect("Failed to bind GL context") };
-    let context = Rc::new(glow::Context::from_loader_function(|s| {
-        windowed_context.get_proc_address(s) as *const _
-    }));
+    let raw_ctx = unsafe {
+        glow::Context::from_loader_function(|s| windowed_context.get_proc_address(s) as *const _)
+    };
+    let context = Rc::new(raw_ctx);
     let program = Program::default(context.clone())?;
     let locations = DefaultLocations::from(&program).ok_or("Failed to fetch locations")?;
     let gl = context.clone();

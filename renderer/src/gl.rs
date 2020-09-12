@@ -270,18 +270,18 @@ impl<'a, C: HasContext> Render for RenderState<'a, C> {
 
         let matrix = transformation
             .position
-            .post_transform(&viewport_transform(self.viewport))
-            .to_row_arrays();
+            .then(&viewport_transform(self.viewport))
+            .to_array();
 
         let matrix_data: [f32; 9] = [
-            matrix[0][0],
-            matrix[0][1],
+            matrix[0],
+            matrix[1],
             0.,
-            matrix[1][0],
-            matrix[1][1],
+            matrix[2],
+            matrix[3],
             0.,
-            matrix[2][0],
-            matrix[2][1],
+            matrix[4],
+            matrix[5],
             1.,
         ];
 
@@ -302,7 +302,7 @@ impl<'a, C: HasContext> Render for RenderState<'a, C> {
 }
 
 fn viewport_transform(viewport: (u32, u32)) -> Transform2D<f32, (), ()> {
-    Transform2D::create_scale(BASE_SCALE / viewport.0 as f32, -BASE_SCALE / viewport.1 as f32)
+    Transform2D::scale(BASE_SCALE / viewport.0 as f32, -BASE_SCALE / viewport.1 as f32)
 }
 
 unsafe fn raw_byte_slice<A>(buf: &[A]) -> &[u8] {

@@ -66,7 +66,7 @@ impl SpriteTransform {
     #[inline]
     pub fn combine(self, other: SpriteTransform) -> SpriteTransform {
         SpriteTransform {
-            position: self.position.post_transform(&other.position),
+            position: self.position.then(&other.position),
             color: self.color.combine(other.color),
         }
     }
@@ -74,7 +74,7 @@ impl SpriteTransform {
     #[inline]
     pub fn translate(x: f32, y: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform2D::create_translation(x, y),
+            position: Transform2D::translation(x, y),
             color: ColorTransform::identity(),
         }
     }
@@ -82,7 +82,7 @@ impl SpriteTransform {
     #[inline]
     pub fn rotate(rx0: f32, ry0: f32, rx1: f32, ry1: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform2D::column_major(rx0, rx1, 0f32, ry0, ry1, 0f32),
+            position: Transform2D::new(rx0, ry0, rx1, ry1, 0f32, 0f32),
             color: ColorTransform::identity(),
         }
     }
@@ -90,7 +90,7 @@ impl SpriteTransform {
     #[inline]
     pub fn scale(sx: f32, sy: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform2D::create_scale(sx, sy),
+            position: Transform2D::scale(sx, sy),
             color: ColorTransform::identity(),
         }
     }
