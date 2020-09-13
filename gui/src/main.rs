@@ -51,7 +51,7 @@ fn launch_ui() -> Result<(), String> {
 
             thread::spawn(move || match run_renderer(receiver) {
                 Ok(()) => (),
-                Err(err) => log::error!("Rendered failed with: {}", err),
+                Err(err) => log::error!("Renderer failed with: {}", err),
             });
             State::run(Settings::with_flags((resources, sender)));
             Ok(())
