@@ -13,6 +13,7 @@ use image::RgbaImage;
 use nfd::Response;
 use renderer::{run_renderer, RenderCommand};
 use rustfu_renderer::types::Animation;
+use simplelog::*;
 use std::borrow::{Borrow, BorrowMut};
 use std::path::Path;
 use wakfudecrypt::types::interactive_element_model::InteractiveElementModel;
@@ -24,16 +25,39 @@ pub mod resources;
 pub mod translations;
 
 pub fn main() {
-    let result = nfd::open_pick_folder(None).unwrap();
+    CombinedLogger::init(vec![
+        TermLogger::new(LevelFilter::Info, Config::default(), TerminalMode::Mixed),
+        WriteLogger::new(
+            LevelFilter::Info,
+            Config::default(),
+            File::create("rustfu.log").unwrap(),
+        ),
+    ])
+    .unwrap();
+
+    match launch_ui() {
+        Ok(()) => log::info!("App exited successfully"),
+        Err(err) => log::error!("App failed with an error: {}", err),
+    }
+}
+
+fn launch_ui() -> Result<(), String> {
+    let result = nfd::open_pick_folder(None);
     match result {
-        Response::Okay(path) => {
-            let resources = Resources::open(Path::new(&path)).unwrap();
+        Ok(Response::Okay(path)) => {
+            let resources =
+                Resources::open(Path::new(&path)).map_err(|err| format!("Failed to load resources: {}", err))?;
             let (sender, receiver) = channel();
 
-            thread::spawn(move || run_renderer(receiver).unwrap());
+            thread::spawn(move || match run_renderer(receiver) {
+                Ok(()) => (),
+                Err(err) => log::error!("Rendered failed with: {}", err),
+            });
             State::run(Settings::with_flags((resources, sender)));
+            Ok(())
         }
-        _ => (),
+        Ok(_) => Ok(()),
+        Err(err) => Err(format!("File dialog error: {}", err)),
     }
 }
 

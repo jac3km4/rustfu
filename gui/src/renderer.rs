@@ -29,11 +29,13 @@ pub fn run_renderer(receiver: Receiver<RenderCommand>) -> Result<(), String> {
     let windowed_context = glutin::ContextBuilder::new()
         .with_vsync(true)
         .build_windowed(wb, &event_loop)
-        .expect("Could not create a window");
-    let windowed_context = unsafe { windowed_context.make_current().expect("Failed to bind GL context") };
-    let raw_ctx = unsafe {
-        glow::Context::from_loader_function(|s| windowed_context.get_proc_address(s) as *const _)
+        .map_err(|e| format!("Failed to create a window: {}", e))?;
+    let windowed_context = unsafe {
+        windowed_context
+            .make_current()
+            .map_err(|e| format!("Failed to bind GL context ({})", e.1))?
     };
+    let raw_ctx = unsafe { glow::Context::from_loader_function(|s| windowed_context.get_proc_address(s) as *const _) };
     let context = Rc::new(raw_ctx);
     let program = Program::default(context.clone())?;
     let locations = DefaultLocations::from(&program).ok_or("Failed to fetch locations")?;

@@ -49,7 +49,9 @@ pub struct AnimationArchive<R: io::Read + io::Seek> {
 
 impl AnimationArchive<File> {
     pub fn open(path: &Path) -> io::Result<AnimationArchive<File>> {
-        let archive = ZipArchive::new(File::open(path)?)?;
+        let file =
+            File::open(path).map_err(|err| io::Error::new(err.kind(), format!("{} for file {:?}", err, path)))?;
+        let archive = ZipArchive::new(file)?;
         Ok(AnimationArchive { archive })
     }
 
