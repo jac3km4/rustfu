@@ -262,19 +262,22 @@ impl Application for State {
             .push(Container::new(types).width(Length::Fill).style(theme::SelectList))
             .push(Container::new(animations).width(Length::Fill).style(theme::SelectList))
             .push(Container::new(records).width(Length::Fill).style(theme::SelectList))
-            .spacing(20);
+            .spacing(20)
+            .height(Length::Fill);
 
-        Container::new(
-            Column::new()
-                .push(input)
-                .push(Space::with_height(Length::Units(20)))
-                .push(content)
-                .push(Button::new(button, Text::new("Save GIF")).on_press(Message::SaveGif))
-                .padding(20),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .into()
+        let save_button = Button::new(button, Text::new("Save GIF"))
+            .height(Length::Units(32))
+            .on_press(Message::SaveGif);
+
+        Column::new()
+            .push(input)
+            .push(content)
+            .push(save_button)
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .spacing(20)
+            .padding(20)
+            .into()
     }
 }
 
@@ -301,7 +304,7 @@ impl<A: Display> SelectList<A> {
     fn new(options: Vec<A>) -> Self {
         SelectList {
             scroll: scrollable::State::default(),
-            buttons: SelectList::<A>::default_buttons(options.len()),
+            buttons: Self::default_buttons(options.len()),
             options,
             selected: 0,
         }
@@ -312,7 +315,7 @@ impl<A: Display> SelectList<A> {
     }
 
     fn set_options(&mut self, options: Vec<A>) {
-        self.buttons = SelectList::<A>::default_buttons(options.len());
+        self.buttons = Self::default_buttons(options.len());
         self.options = options;
     }
 
@@ -321,6 +324,7 @@ impl<A: Display> SelectList<A> {
             buttons,
             scroll,
             options,
+            selected,
             ..
         } = self;
         let body =
@@ -331,9 +335,13 @@ impl<A: Display> SelectList<A> {
                 .fold(Column::new().padding(2), |col, (i, (state, option))| {
                     let button = Button::new(state, Text::new(format!("{}", option)))
                         .on_press(SelectMessage(i))
-                        .width(Length::Fill)
-                        .style(theme::SelectOption);
-                    col.push(button)
+                        .width(Length::Fill);
+                    let styled = if *selected == i {
+                        button.style(theme::SelectActiveOption)
+                    } else {
+                        button.style(theme::SelectOption)
+                    };
+                    col.push(styled)
                 });
 
         Scrollable::new(scroll).push(body.width(Length::Fill)).into()
@@ -352,6 +360,7 @@ mod theme {
     impl button::StyleSheet for SelectOption {
         fn active(&self) -> button::Style {
             button::Style {
+                border_radius: 4,
                 background: None,
                 ..button::Style::default()
             }
@@ -359,6 +368,27 @@ mod theme {
 
         fn hovered(&self) -> button::Style {
             button::Style {
+                border_radius: 4,
+                background: Some(Background::Color(Color::from_rgb8(200, 200, 200))),
+                ..button::Style::default()
+            }
+        }
+    }
+
+    pub struct SelectActiveOption;
+
+    impl button::StyleSheet for SelectActiveOption {
+        fn active(&self) -> button::Style {
+            button::Style {
+                border_radius: 4,
+                background: Some(Background::Color(Color::from_rgb8(225, 225, 225))),
+                ..button::Style::default()
+            }
+        }
+
+        fn hovered(&self) -> button::Style {
+            button::Style {
+                border_radius: 4,
                 background: Some(Background::Color(Color::from_rgb8(200, 200, 200))),
                 ..button::Style::default()
             }
