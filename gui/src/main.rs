@@ -206,12 +206,13 @@ impl Application for State {
                 let name = self.animation_list.options.get(i).unwrap();
                 if let Result::Ok(animation) = archive.load_animation(&name.1) {
                     let texture_id = animation.texture.clone().unwrap().name;
-                    let options = animation
+                    let mut options = animation
                         .borrow()
                         .sprites
                         .iter()
                         .filter_map(|(_, sprite)| sprite.name.name.clone())
                         .collect::<Vec<_>>();
+                    options.sort();
 
                     self.image = Some(archive.load_texture(&texture_id).unwrap());
                     self.animation = Some(animation);
