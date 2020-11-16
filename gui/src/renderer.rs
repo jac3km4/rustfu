@@ -1,7 +1,7 @@
 use quicksilver::geom::Vector;
 use quicksilver::graphics::{Color, Graphics, Image, PixelFormat, Surface};
 use quicksilver::input::Event;
-use quicksilver::{Input, Settings, Window};
+use quicksilver::{Input, Settings, Timer, Window};
 use rustfu_renderer::backend::QuicksilverBackend;
 use rustfu_renderer::types::{Animation, Sprite};
 use std::fs::File;
@@ -28,18 +28,12 @@ async fn app(
     mut input: Input,
     receiver: Receiver<RenderCommand>,
 ) -> quicksilver::Result<()> {
+    let mut timer = Timer::time_per_second(30.);
     let mut frame = 0;
     let mut backend = QuicksilverBackend::new(gfx, &window);
     let mut selected_sprite = None;
     let mut selected_animation = None;
     loop {
-        frame += 1;
-        backend.context().clear(Color::BLACK);
-        if let (Some(sprite), Some(animation)) = (&selected_sprite, &selected_animation) {
-            backend.render(animation, sprite, frame);
-        }
-        backend.context().present(&window)?;
-
         while let Some(event) = input.next_event().await {
             match event {
                 Event::Resized(size_event) => {
@@ -65,6 +59,15 @@ async fn app(
                 }
             }
             None => {}
+        }
+
+        if timer.exhaust().is_some() {
+            backend.context().clear(Color::BLACK);
+            if let (Some(sprite), Some(animation)) = (&selected_sprite, &selected_animation) {
+                backend.render(animation, sprite, frame);
+            }
+            backend.context().present(&window)?;
+            frame += 1;
         }
     }
 }
