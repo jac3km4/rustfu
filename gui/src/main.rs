@@ -1,21 +1,20 @@
 #![windows_subsystem = "windows"]
 extern crate image;
 
-use std::fmt::Display;
-use std::fs::File;
-use std::sync::mpsc::{channel, Sender};
-use std::thread;
-
 use crate::resources::Resources;
 use crate::translations::Translation;
 use iced::*;
 use image::RgbaImage;
 use nfd::Response;
+use quicksilver::log;
 use renderer::{run_renderer, RenderCommand};
 use rustfu_renderer::types::Animation;
-use simplelog::*;
 use std::borrow::{Borrow, BorrowMut};
+use std::fmt::Display;
+use std::fs::File;
 use std::path::Path;
+use std::sync::mpsc::{channel, Sender};
+use std::thread;
 use wakfudecrypt::types::interactive_element_model::InteractiveElementModel;
 use wakfudecrypt::types::monster::Monster;
 use wakfudecrypt::types::pet::Pet;
@@ -25,16 +24,6 @@ pub mod resources;
 pub mod translations;
 
 pub fn main() {
-    CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Info, Config::default(), TerminalMode::Mixed),
-        WriteLogger::new(
-            LevelFilter::Info,
-            Config::default(),
-            File::create("rustfu.log").unwrap(),
-        ),
-    ])
-    .unwrap();
-
     match launch_ui() {
         Ok(()) => log::info!("App exited successfully"),
         Err(err) => log::error!("App failed with an error: {}", err),
@@ -84,6 +73,7 @@ struct State {
     type_list: SelectList<String>,
     animation_list: SelectList<NamedOption<String>>,
     record_list: SelectList<String>,
+    button: button::State,
     filter: String,
     selected_type: AnimationType,
     options: Vec<NamedOption<String>>,
@@ -100,6 +90,7 @@ enum Message {
     TypeSelected(AnimationType),
     AnimationSelected(usize),
     RecordSelected(usize),
+    SaveGif,
 }
 
 impl Application for State {
@@ -113,6 +104,7 @@ impl Application for State {
             type_list: SelectList::new(vec!["Npc".to_owned(), "Interactive".to_owned(), "Pet".to_owned()]),
             animation_list: SelectList::new(vec![]),
             record_list: SelectList::new(vec![]),
+            button: button::State::default(),
             filter: "".to_owned(),
             selected_type: AnimationType::Npc,
             options: vec![],
@@ -237,16 +229,13 @@ impl Application for State {
                 if let Some(animation) = animation {
                     if let Some(image) = image {
                         let sprite = record_list.options.get(i).unwrap().to_owned();
-                        let cmd = RenderCommand {
-                            animation: animation.clone(),
-                            image: image.clone(),
-                            sprite,
-                        };
+                        let cmd = RenderCommand::Draw(animation.clone(), image.clone(), sprite);
                         self.sender.send(cmd).unwrap();
                         self.record_list.update(SelectMessage(i));
                     }
                 }
             }
+            Message::SaveGif => self.sender.send(RenderCommand::SaveGif).unwrap(),
         }
         Command::none()
     }
@@ -258,6 +247,7 @@ impl Application for State {
             type_list,
             animation_list,
             record_list,
+            button,
             ..
         } = self;
         let input = TextInput::new(input, "Filter by ID", filter, Message::FilterChanged).padding(5);
@@ -279,6 +269,7 @@ impl Application for State {
                 .push(input)
                 .push(Space::with_height(Length::Units(20)))
                 .push(content)
+                .push(Button::new(button, Text::new("Save GIF")).on_press(Message::SaveGif))
                 .padding(20),
         )
         .width(Length::Fill)

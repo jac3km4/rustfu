@@ -1,7 +1,7 @@
-use euclid::Transform2D;
-
 use crate::frame_reader::FrameReader;
-use crate::types::{Animation, Color, Shape, Sprite, SpritePayload, TransformTable};
+use crate::types::{Animation, Shape, Sprite, SpritePayload, TransformTable};
+use quicksilver::geom::{Transform, Vector};
+use quicksilver::graphics::Color;
 
 pub trait Render {
     fn render(&mut self, shape: &Shape, transform: SpriteTransform) -> ();
@@ -50,7 +50,7 @@ pub trait Render {
 
 #[derive(Debug, Clone)]
 pub struct SpriteTransform {
-    pub position: Transform2D<f32, (), ()>,
+    pub position: Transform,
     pub color: ColorTransform,
 }
 
@@ -58,7 +58,7 @@ impl SpriteTransform {
     #[inline]
     pub fn identity() -> SpriteTransform {
         SpriteTransform {
-            position: Transform2D::identity(),
+            position: Transform::IDENTITY,
             color: ColorTransform::identity(),
         }
     }
@@ -66,7 +66,7 @@ impl SpriteTransform {
     #[inline]
     pub fn combine(self, other: SpriteTransform) -> SpriteTransform {
         SpriteTransform {
-            position: self.position.then(&other.position),
+            position: self.position.then(other.position),
             color: self.color.combine(other.color),
         }
     }
@@ -74,7 +74,7 @@ impl SpriteTransform {
     #[inline]
     pub fn translate(x: f32, y: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform2D::translation(x, y),
+            position: Transform::translate(Vector::new(x, y)),
             color: ColorTransform::identity(),
         }
     }
@@ -82,7 +82,7 @@ impl SpriteTransform {
     #[inline]
     pub fn rotate(rx0: f32, ry0: f32, rx1: f32, ry1: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform2D::new(rx0, ry0, rx1, ry1, 0f32, 0f32),
+            position: [[rx0, rx1, 0.], [ry0, ry1, 0.], [0., 0., 1.]].into(),
             color: ColorTransform::identity(),
         }
     }
@@ -90,7 +90,7 @@ impl SpriteTransform {
     #[inline]
     pub fn scale(sx: f32, sy: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform2D::scale(sx, sy),
+            position: Transform::scale(Vector::new(sx, sy)),
             color: ColorTransform::identity(),
         }
     }
@@ -98,7 +98,7 @@ impl SpriteTransform {
     #[inline]
     pub fn color_multiply(red: f32, green: f32, blue: f32, alpha: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform2D::identity(),
+            position: Transform::IDENTITY,
             color: ColorTransform::Multiply(red, green, blue, alpha),
         }
     }
@@ -106,7 +106,7 @@ impl SpriteTransform {
     #[inline]
     pub fn color_add(red: f32, green: f32, blue: f32, alpha: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform2D::identity(),
+            position: Transform::IDENTITY,
             color: ColorTransform::Add(red, green, blue, alpha),
         }
     }
@@ -141,28 +141,22 @@ impl ColorTransform {
     pub fn fold(self, color: Color) -> Color {
         match self {
             ColorTransform::Multiply(r, g, b, a) => Color {
-                red: color.red * r,
-                green: color.green * g,
-                blue: color.blue * b,
-                alpha: color.alpha * a,
+                r: color.r * r,
+                g: color.g * g,
+                b: color.b * b,
+                a: color.a * a,
             },
             ColorTransform::Add(r, g, b, a) => Color {
-                red: color.red + r,
-                green: color.green + g,
-                blue: color.blue + b,
-                alpha: color.alpha + a,
+                r: color.r + r,
+                g: color.g + g,
+                b: color.b + b,
+                a: color.a + a,
             },
             ColorTransform::Combine(l, r) => r.fold(l.fold(color)),
         }
     }
 
     pub fn color(self) -> Color {
-        let initial = Color {
-            red: 1.,
-            green: 1.,
-            blue: 1.,
-            alpha: 1.,
-        };
-        self.fold(initial)
+        self.fold(Color::WHITE)
     }
 }
