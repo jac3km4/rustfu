@@ -128,7 +128,7 @@ impl Application for State {
                 let animations = self
                     .options
                     .iter()
-                    .filter(|opt| opt.0.contains(filter))
+                    .filter(|opt| opt.0.to_lowercase().contains(&filter.to_lowercase()))
                     .cloned()
                     .collect();
                 self.animation_list.set_options(animations);
