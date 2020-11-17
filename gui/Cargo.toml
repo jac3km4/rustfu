@@ -6,11 +6,14 @@ edition = "2018"
 [dependencies]
 iced = "0.1"
 nfd = "0.0.4"
-zip = { version = "0.5", default-features = false, features = [ "deflate" ] }
-image = { version = "0.23", default-features = false, features = [ "png" ] }
-glutin = { version = "0.24" }
-glow = { version = "0.6", default-features = false, features = [ "glutin" ] }
+zip = { version = "0.5", default-features = false, features = ["deflate"] }
+image = { version = "0.23", default-features = false, features = ["png"] }
+gif = { version = "0.11" }
 wakfudecrypt = { git = "https://gitlab.com/re.wakfu/wakfudecrypt-rs.git", rev = "eefa41c2a13bc78925a89d60edf4c2a85cb4d645" }
 rustfu-renderer = { path = "../renderer" }
-log = "0.4"
-simplelog = "0.8"
+
+[dependencies.quicksilver]
+git = "https://github.com/jac3km4/quicksilver"
+branch = "allow-any-thread"
+default-features = false
+features = ["easy-log", "event-cache"]

@@ -1,95 +1,104 @@
-use rustfu_renderer::gl::{DefaultLocations, Program, RenderState, SpriteVertex, Texture};
+use quicksilver::geom::Vector;
+use quicksilver::graphics::{Color, Graphics, Image, PixelFormat, Surface};
+use quicksilver::input::Event;
+use quicksilver::{Input, Settings, Timer, Window};
+use rustfu_renderer::backend::QuicksilverBackend;
 use rustfu_renderer::types::{Animation, Sprite};
-use std::collections::HashMap;
-use std::rc::Rc;
-
-use glow::HasContext;
-use glutin::dpi::PhysicalSize;
-use glutin::event::{Event, WindowEvent};
-use glutin::event_loop::{ControlFlow, EventLoop};
+use std::fs::File;
 use std::sync::mpsc::Receiver;
-use std::time::{Duration, Instant};
 
-#[cfg(unix)]
-use glutin::platform::unix::EventLoopExtUnix;
-#[cfg(windows)]
-use glutin::platform::windows::EventLoopExtWindows;
-
-pub struct RenderCommand {
-    pub animation: Animation,
-    pub image: image::RgbaImage,
-    pub sprite: String,
+pub enum RenderCommand {
+    Draw(Animation, image::RgbaImage, String),
+    SaveGif,
 }
 
 pub fn run_renderer(receiver: Receiver<RenderCommand>) -> Result<(), String> {
-    let event_loop: EventLoop<()> = EventLoop::new_any_thread();
-    let wb = glutin::window::WindowBuilder::new()
-        .with_title("Renderer")
-        .with_inner_size(glutin::dpi::LogicalSize::new(640, 640));
-    let windowed_context = glutin::ContextBuilder::new()
-        .with_vsync(true)
-        .build_windowed(wb, &event_loop)
-        .map_err(|e| format!("Failed to create a window: {}", e))?;
-    let windowed_context = unsafe {
-        windowed_context
-            .make_current()
-            .map_err(|e| format!("Failed to bind GL context ({})", e.1))?
+    let settings = Settings {
+        title: "Renderer",
+        size: Vector::new(320., 320.),
+        resizable: true,
+        ..Settings::default()
     };
-    let raw_ctx = unsafe { glow::Context::from_loader_function(|s| windowed_context.get_proc_address(s) as *const _) };
-    let context = Rc::new(raw_ctx);
-    let program = Program::default(context.clone())?;
-    let locations = DefaultLocations::from(&program).ok_or("Failed to fetch locations")?;
-    let gl = context.clone();
+    quicksilver::run(settings, |window, gfx, input| app(window, gfx, input, receiver));
+}
 
-    let mut current_animation: Option<Animation> = None;
-    let mut current_sprite: Option<Sprite> = None;
-    let mut current_texture = None;
-    let mut vertexes: HashMap<i16, SpriteVertex<glow::Context>> = HashMap::new();
+async fn app(
+    window: Window,
+    gfx: Graphics,
+    mut input: Input,
+    receiver: Receiver<RenderCommand>,
+) -> quicksilver::Result<()> {
+    let mut timer = Timer::time_per_second(30.);
     let mut frame = 0;
-
-    event_loop.run(move |event, _, control_flow| {
-        let next_frame_time = Instant::now() + Duration::from_nanos(33_333_333);
-        *control_flow = ControlFlow::WaitUntil(next_frame_time);
-        match event {
-            Event::LoopDestroyed => return,
-            Event::MainEventsCleared => windowed_context.window().request_redraw(),
-            Event::RedrawRequested(_) => unsafe {
-                frame += 1;
-                gl.clear(glow::COLOR_BUFFER_BIT);
-                gl.clear_color(0f32, 0f32, 0f32, 0f32);
-
-                if let (Some(animation), Some(sprite), Some(texture)) =
-                    (&current_animation, &current_sprite, &current_texture)
-                {
-                    let PhysicalSize { width, height } = windowed_context.window().inner_size();
-                    let mut state = RenderState::new(gl.clone(), &mut vertexes, texture, &locations, (width, height));
-                    state.render(animation, sprite, frame);
+    let mut backend = QuicksilverBackend::new(gfx, &window);
+    let mut selected_sprite = None;
+    let mut selected_animation = None;
+    loop {
+        while let Some(event) = input.next_event().await {
+            match event {
+                Event::Resized(size_event) => {
+                    backend.context().set_camera_size(size_event.size());
+                    backend.set_viewport(size_event.size());
                 }
-
-                windowed_context.swap_buffers().unwrap();
-
-                if let Some(command) = receiver.try_recv().ok() {
-                    let RenderCommand {
-                        sprite,
-                        animation,
-                        image,
-                    } = command;
-                    vertexes.clear();
-                    current_texture = Some(Texture::new(gl.clone(), image).expect("Could not load texture"));
-                    current_sprite = animation
-                        .sprites
-                        .values()
-                        .find(|spr| spr.name.name.as_ref() == Some(&sprite))
-                        .cloned();
-                    current_animation = Some(animation);
-                }
-            },
-            Event::WindowEvent { ref event, .. } => match event {
-                WindowEvent::Resized(physical_size) => windowed_context.resize(*physical_size),
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                _ => (),
-            },
-            _ => (),
+                _ => {}
+            }
         }
-    });
+        match receiver.try_recv().ok() {
+            Some(RenderCommand::Draw(animation, image, sprite)) => {
+                selected_sprite = animation
+                    .sprites
+                    .values()
+                    .find(|spr| spr.name.name.as_ref() == Some(&sprite))
+                    .cloned();
+                selected_animation = Some(animation);
+                backend.set_atlas(image);
+            }
+            Some(RenderCommand::SaveGif) => {
+                if let (Some(sprite), Some(animation)) = (&selected_sprite, &selected_animation) {
+                    save_gif(&mut backend, animation, sprite, window.size())?
+                }
+            }
+            None => {}
+        }
+
+        if timer.exhaust().is_some() {
+            backend.context().clear(Color::BLACK);
+            if let (Some(sprite), Some(animation)) = (&selected_sprite, &selected_animation) {
+                backend.render(animation, sprite, frame);
+            }
+            backend.context().present(&window)?;
+            frame += 1;
+        }
+    }
+}
+
+fn save_gif(
+    backend: &mut QuicksilverBackend,
+    animation: &Animation,
+    sprite: &Sprite,
+    size: Vector,
+) -> quicksilver::Result<()> {
+    let width = size.x as u16;
+    let height = size.y as u16;
+
+    let attachment = Image::from_raw(backend.context(), None, width.into(), height.into(), PixelFormat::RGBA)?;
+    let surface = Surface::new(backend.context(), attachment)?;
+
+    let file_path = format!("saved/{}.gif", sprite.name.name_crc);
+    std::fs::create_dir_all("saved").expect("Failed to create the screenshot directory");
+    let mut encoder = gif::Encoder::new(File::create(file_path).unwrap(), width, height, &[]).unwrap();
+    encoder.set_repeat(gif::Repeat::Infinite).unwrap();
+
+    for frame in 0..sprite.frame_count() {
+        backend.context().clear(Color::BLACK.with_alpha(0.));
+        backend.render(animation, sprite, frame as u32);
+        backend.context().flush_surface(&surface)?;
+        let mut data = surface.screenshot(backend.context(), 0, 0, width.into(), height.into(), PixelFormat::RGBA);
+
+        let mut frame = gif::Frame::from_rgba_speed(width, height, &mut data, 10);
+        frame.delay = 3;
+        frame.dispose = gif::DisposalMethod::Background;
+        encoder.write_frame(&frame).expect("Failed to encode GIF frame");
+    }
+    Ok(())
 }

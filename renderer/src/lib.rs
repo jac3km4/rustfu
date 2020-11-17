@@ -1,6 +1,6 @@
 mod frame_reader;
 
-pub mod types;
+pub mod backend;
 pub mod decode;
 pub mod render;
-pub mod gl;
+pub mod types;

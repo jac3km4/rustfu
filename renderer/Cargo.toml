@@ -8,13 +8,16 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 byteorder = "1.3"
-euclid = "0.22"
-image = { version = "0.23", default-features = false, features = [ "png" ] }
-glow = { version = "0.6", default-features = false }
+image = { version = "0.23", default-features = false, features = ["png"] }
+
+[dependencies.quicksilver]
+git = "https://github.com/jac3km4/quicksilver"
+branch = "allow-any-thread"
+default-features = false
+features = ["easy-log", "event-cache"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-stdweb  = { version = "0.4" }
-webgl_stdweb = { version = "0.3" }
+web_sys = { version = "0.3", package = "web-sys", optional = true }
 
 [features]
-std_web = ["glow/stdweb"]
+web-sys = ["web_sys", "quicksilver/web-sys"]
