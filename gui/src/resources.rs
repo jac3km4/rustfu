@@ -1,14 +1,12 @@
+use crate::translations::Translations;
+use rustfu_renderer::types::Animation;
 use std::fs::File;
 use std::io;
 use std::io::{Cursor, Read};
 use std::path::{Path, PathBuf};
-
-use zip::ZipArchive;
-
-use crate::translations::Translations;
-use rustfu_renderer::types::Animation;
 use wakfudecrypt::document::Document;
 use wakfudecrypt::BinaryData;
+use zip::ZipArchive;
 
 pub struct Resources<R: io::Read + io::Seek> {
     root: PathBuf,
@@ -66,7 +64,7 @@ impl AnimationArchive<File> {
         entry.read_to_end(&mut buf)?;
         let image = image::load(Cursor::new(buf), image::ImageFormat::Png)
             .unwrap()
-            .to_rgba();
+            .to_rgba8();
         Ok(image)
     }
 }

@@ -13,6 +13,7 @@ use std::borrow::{Borrow, BorrowMut};
 use std::fmt::Display;
 use std::fs::File;
 use std::path::Path;
+use std::result::Result;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use wakfudecrypt::types::interactive_element_model::InteractiveElementModel;
@@ -42,8 +43,7 @@ fn launch_ui() -> Result<(), String> {
                 Ok(()) => (),
                 Err(err) => log::error!("Renderer failed with: {}", err),
             });
-            State::run(Settings::with_flags((resources, sender)));
-            Ok(())
+            State::run(Settings::with_flags((resources, sender))).map_err(|err| format!("Iced failure: {}", err))
         }
         Ok(_) => Ok(()),
         Err(err) => Err(format!("File dialog error: {}", err)),
@@ -361,7 +361,7 @@ mod theme {
     impl button::StyleSheet for SelectOption {
         fn active(&self) -> button::Style {
             button::Style {
-                border_radius: 4,
+                border_radius: 4.,
                 background: None,
                 ..button::Style::default()
             }
@@ -369,7 +369,7 @@ mod theme {
 
         fn hovered(&self) -> button::Style {
             button::Style {
-                border_radius: 4,
+                border_radius: 4.,
                 background: Some(Background::Color(Color::from_rgb8(200, 200, 200))),
                 ..button::Style::default()
             }
@@ -381,7 +381,7 @@ mod theme {
     impl button::StyleSheet for SelectActiveOption {
         fn active(&self) -> button::Style {
             button::Style {
-                border_radius: 4,
+                border_radius: 4.,
                 background: Some(Background::Color(Color::from_rgb8(225, 225, 225))),
                 ..button::Style::default()
             }
@@ -389,7 +389,7 @@ mod theme {
 
         fn hovered(&self) -> button::Style {
             button::Style {
-                border_radius: 4,
+                border_radius: 4.,
                 background: Some(Background::Color(Color::from_rgb8(200, 200, 200))),
                 ..button::Style::default()
             }
@@ -401,9 +401,9 @@ mod theme {
     impl container::StyleSheet for SelectList {
         fn style(&self) -> container::Style {
             container::Style {
-                border_width: 1,
+                border_width: 1.,
                 border_color: Color::from_rgb8(200, 200, 200),
-                border_radius: 4,
+                border_radius: 4.,
                 ..container::Style::default()
             }
         }
