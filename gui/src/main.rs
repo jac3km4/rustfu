@@ -1,15 +1,17 @@
 #![windows_subsystem = "windows"]
-extern crate image;
 
 use crate::resources::Resources;
 use crate::translations::Translation;
-use iced::*;
+use iced::{
+    button, executor, scrollable, text_input, Application, Button, Column, Command, Container, Element, Length, Row,
+    Scrollable, Settings, Text, TextInput,
+};
 use image::RgbaImage;
 use nfd::Response;
 use quicksilver::log;
 use renderer::{run_renderer, RenderCommand};
 use rustfu_renderer::types::Animation;
-use std::borrow::{Borrow, BorrowMut};
+use std::borrow::BorrowMut;
 use std::fmt::Display;
 use std::fs::File;
 use std::path::Path;
@@ -207,7 +209,6 @@ impl Application for State {
                 if let Result::Ok(animation) = archive.load_animation(&name.1) {
                     let texture_id = animation.texture.clone().unwrap().name;
                     let mut options = animation
-                        .borrow()
                         .sprites
                         .iter()
                         .filter_map(|(_, sprite)| sprite.name.name.clone())
