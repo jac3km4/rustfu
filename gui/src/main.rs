@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use app::AppState;
 use native_dialog::{FileDialog, MessageDialog};
 use notan::draw::DrawConfig;
