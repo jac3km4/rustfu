@@ -1,15 +1,17 @@
-use std::collections::HashMap;
 use std::fs::File;
 use std::io;
 use std::path::Path;
+
+use hashbrown::HashMap;
 use zip::ZipArchive;
 
+#[derive(Debug)]
 pub struct Translations {
     entries: HashMap<String, String>,
 }
 
 impl Translations {
-    pub fn load(path: &Path) -> io::Result<Translations> {
+    pub fn load(path: impl AsRef<Path>) -> io::Result<Translations> {
         let file = File::open(path)?;
         let mut archive = ZipArchive::new(file)?;
         let input = io::BufReader::new(archive.by_index(0)?);
@@ -28,23 +30,8 @@ impl Translations {
         Ok(Translations { entries })
     }
 
-    pub fn get(&self, translation: Translation, name: &str) -> Option<&String> {
-        let key = format!("content.{}.{}", translation as i32, name);
+    pub fn get(&self, translation_id: &str, name: &str) -> Option<&String> {
+        let key = format!("content.{}.{}", translation_id, name);
         self.entries.get(&key)
     }
-}
-
-pub enum Translation {
-    Spell = 3,
-    Area = 6,
-    Monster = 7,
-    State = 8,
-    StateDescription = 9,
-    Effect = 10,
-    ItemType = 14,
-    Item = 15,
-    ItemDescription = 16,
-    Pet = 65,
-    Instance = 77,
-    InteractiveElementView = 99,
 }

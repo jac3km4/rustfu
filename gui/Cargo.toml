@@ -1,19 +1,24 @@
 [package]
 name = "rustfu-gui"
-version = "0.1.0"
-edition = "2018"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 
 [dependencies]
-iced = "0.2"
-nfd = "0.0.4"
-zip = { version = "0.6", default-features = false, features = ["deflate"] }
-image = { version = "0.24", default-features = false, features = ["png"] }
-gif = { version = "0.12" }
+anyhow.workspace = true
+hashbrown.workspace = true
+euclid.workspace = true
+oneshot.workspace = true
+ringbuf.workspace = true
+image = { workspace = true, features = ["png"] }
+zip = { workspace = true, features = ["deflate"] }
+webp-animation.workspace = true
+notan = { workspace = true, features = [
+    "backend",
+    "egui",
+    "draw",
+    "glsl-to-spirv",
+] }
+native-dialog.workspace = true
 wakfudecrypt = { git = "https://gitlab.com/re.wakfu/wakfudecrypt-rs.git", rev = "eefa41c2a13bc78925a89d60edf4c2a85cb4d645" }
-rustfu-renderer = { path = "../renderer" }
-
-[dependencies.quicksilver]
-git = "https://github.com/jac3km4/quicksilver"
-branch = "allow-any-thread"
-default-features = false
-features = ["easy-log", "event-cache"]
+rustfu-renderer = { path = "../renderer", features = ["notan"] }

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 #[derive(Debug, Clone)]
 pub enum FrameData {
@@ -39,6 +39,13 @@ pub struct Animation {
     pub transform: Option<TransformTable>,
     pub sprites: HashMap<i16, Sprite>,
     pub imports: Vec<Import>,
+}
+
+impl Animation {
+    #[inline]
+    pub fn scale(&self) -> f32 {
+        self.index.as_ref().and_then(|i| i.scale).unwrap_or(1.)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -197,7 +204,7 @@ impl Sprite {
     pub fn frame_count(&self) -> usize {
         match &self.payload {
             SpritePayload::Indexed(frame_pos, _, action_info) => {
-                let divisor = if action_info.len() == 0 { 2 } else { 3 };
+                let divisor = if action_info.is_empty() { 2 } else { 3 };
                 frame_pos.len() / divisor
             }
             _ => 1,
@@ -227,4 +234,25 @@ pub struct Color {
     pub green: f32,
     pub blue: f32,
     pub alpha: f32,
+}
+
+impl Color {
+    pub const WHITE: Color = Color::new(1., 1., 1., 1.);
+
+    #[inline]
+    pub const fn new(red: f32, green: f32, blue: f32, alpha: f32) -> Color {
+        Color {
+            red,
+            green,
+            blue,
+            alpha,
+        }
+    }
+}
+
+impl From<Color> for [f32; 4] {
+    #[inline]
+    fn from(color: Color) -> Self {
+        [color.red, color.green, color.blue, color.alpha]
+    }
 }

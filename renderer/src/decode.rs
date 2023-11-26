@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use std::io;
 
 use byteorder::*;
+use hashbrown::HashMap;
 
 use crate::types::*;
 
@@ -10,10 +10,12 @@ pub trait Decode: Sized {
 }
 
 pub trait DecodeExt: io::Read + Sized {
+    #[inline]
     fn decode<A: Decode>(&mut self) -> io::Result<A> {
         Decode::decode(self)
     }
 
+    #[inline]
     fn decode_prefixed<P: Decode + Into<u32>, A: Decode>(&mut self) -> io::Result<Vec<A>> {
         let count = self.decode::<P>()?;
         self.decode_n(count.into() as usize)
@@ -27,6 +29,7 @@ pub trait DecodeExt: io::Read + Sized {
         Ok(vec)
     }
 
+    #[inline]
     fn decode_opt<A: Decode>(&mut self, present: bool) -> io::Result<Option<A>> {
         if present {
             Ok(Some(self.decode()?))
@@ -39,54 +42,63 @@ pub trait DecodeExt: io::Read + Sized {
 impl<R: io::Read> DecodeExt for R {}
 
 impl<A: Decode, B: Decode> Decode for (A, B) {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         Ok((cursor.decode()?, cursor.decode()?))
     }
 }
 
 impl Decode for i8 {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         cursor.read_i8()
     }
 }
 
 impl Decode for u8 {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         cursor.read_u8()
     }
 }
 
 impl Decode for i16 {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         cursor.read_i16::<LittleEndian>()
     }
 }
 
 impl Decode for u16 {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         cursor.read_u16::<LittleEndian>()
     }
 }
 
 impl Decode for i32 {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         cursor.read_i32::<LittleEndian>()
     }
 }
 
 impl Decode for u32 {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         cursor.read_u32::<LittleEndian>()
     }
 }
 
 impl Decode for f32 {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         cursor.read_f32::<LittleEndian>()
     }
 }
 
 impl Decode for f64 {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         cursor.read_f64::<LittleEndian>()
     }
@@ -138,6 +150,7 @@ impl Decode for Animation {
 }
 
 impl Decode for AnimationVersion {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         Ok(AnimationVersion(cursor.decode()?))
     }
@@ -241,6 +254,7 @@ impl Decode for Sprite {
 }
 
 impl Decode for SpriteFlags {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         Ok(SpriteFlags(cursor.decode()?))
     }
@@ -252,8 +266,7 @@ impl Decode for FrameData {
         let size = cursor.decode::<u32>()? as usize;
         match tag {
             1 => {
-                let mut buf = Vec::with_capacity(size);
-                unsafe { buf.set_len(size) }
+                let mut buf = vec![0; size];
                 cursor.read_exact(&mut buf)?;
                 Ok(FrameData::Bytes(buf))
             }
@@ -303,6 +316,7 @@ impl Decode for AnimationIndex {
 }
 
 impl Decode for AnimationFlags {
+    #[inline]
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         Ok(AnimationFlags(cursor.decode()?))
     }
@@ -312,7 +326,10 @@ impl Decode for HideablePart {
     fn decode<R: io::Read>(cursor: &mut R) -> io::Result<Self> {
         let crc_key = cursor.decode::<i32>()?;
         let crc_to_hide = cursor.decode::<i32>()?;
-        Ok(HideablePart { crc_key, crc_to_hide })
+        Ok(HideablePart {
+            crc_key,
+            crc_to_hide,
+        })
     }
 }
 
@@ -366,7 +383,11 @@ impl Decode for AnimationFile {
         let name = cursor.decode::<String>()?;
         let crc = cursor.decode::<i32>()?;
         let file_index = cursor.decode::<i16>()?;
-        Ok(AnimationFile { name, crc, file_index })
+        Ok(AnimationFile {
+            name,
+            crc,
+            file_index,
+        })
     }
 }
 
@@ -416,7 +437,12 @@ impl Decode for Action {
                 let offset_x = cursor.decode_opt::<i16>(param_count > 1)?;
                 let offset_y = cursor.decode_opt::<i16>(param_count > 2)?;
                 let offset_z = cursor.decode_opt::<i16>(param_count > 3)?;
-                Ok(Action::AddParticle(particle_id, offset_x, offset_y, offset_z))
+                Ok(Action::AddParticle(
+                    particle_id,
+                    offset_x,
+                    offset_y,
+                    offset_z,
+                ))
             }
             10 => Ok(Action::SetRadius(cursor.decode()?)),
             other => Err(io::Error::new(

@@ -1,20 +1,15 @@
 [package]
 name = "rustfu-renderer"
-version = "0.1.0"
-edition = "2018"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
 
 [dependencies]
-byteorder = "1.3"
-image = { version = "0.24", default-features = false, features = ["png"] }
-
-[dependencies.quicksilver]
-git = "https://github.com/jac3km4/quicksilver"
-branch = "allow-any-thread"
-default-features = false
-features = ["easy-log", "event-cache"]
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-web_sys = { version = "0.3", package = "web-sys", optional = true }
+hashbrown.workspace = true
+byteorder.workspace = true
+euclid.workspace = true
+image.workspace = true
+notan = { workspace = true, optional = true }
 
 [features]
-web-sys = ["web_sys", "quicksilver/web-sys"]
+notan = ["dep:notan"]
