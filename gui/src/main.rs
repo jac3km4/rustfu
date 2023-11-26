@@ -47,7 +47,8 @@ fn main() {
         .set_high_dpi(true)
         .set_resizable(true)
         .set_lazy_loop(false)
-        .set_size(1024, 768);
+        .set_size(1024, 768)
+        .set_title("Rustfu");
 
     notan::init_with(|_: &mut Assets, _: &mut Graphics| state)
         .add_config(win)
