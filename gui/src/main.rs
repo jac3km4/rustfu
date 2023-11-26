@@ -1,412 +1,69 @@
-#![windows_subsystem = "windows"]
+use app::AppState;
+use native_dialog::{FileDialog, MessageDialog};
+use notan::draw::DrawConfig;
+use notan::egui::*;
+use notan::prelude::*;
+use resources::Resources;
 
-use crate::resources::Resources;
-use crate::translations::Translation;
-use iced::{
-    button, executor, scrollable, text_input, Application, Button, Column, Command, Container, Element, Length, Row,
-    Scrollable, Settings, Text, TextInput,
-};
-use image::RgbaImage;
-use nfd::Response;
-use quicksilver::log;
-use renderer::{run_renderer, RenderCommand};
-use rustfu_renderer::types::Animation;
-use std::borrow::BorrowMut;
-use std::fmt::Display;
-use std::fs::File;
-use std::path::Path;
-use std::result::Result;
-use std::sync::mpsc::{channel, Sender};
-use std::thread;
-use wakfudecrypt::types::interactive_element_model::InteractiveElementModel;
-use wakfudecrypt::types::monster::Monster;
-use wakfudecrypt::types::pet::Pet;
+mod app;
+mod resources;
+mod translations;
+mod ui;
+mod writer;
 
-pub mod renderer;
-pub mod resources;
-pub mod translations;
-
-pub fn main() {
-    match launch_ui() {
-        Ok(()) => log::info!("App exited successfully"),
-        Err(err) => log::error!("App failed with an error: {}", err),
+#[notan_main]
+fn main() {
+    if MessageDialog::new()
+        .set_text("Select the Wakfu installation folder")
+        .show_alert()
+        .is_err()
+    {
+        return;
     }
-}
+    let Ok(Some(path)) = FileDialog::new().show_open_single_dir() else {
+        return;
+    };
 
-fn launch_ui() -> Result<(), String> {
-    let result = nfd::open_pick_folder(None);
-    match result {
-        Ok(Response::Okay(path)) => {
-            let resources =
-                Resources::open(Path::new(&path)).map_err(|err| format!("Failed to load resources: {}", err))?;
-            let (sender, receiver) = channel();
+    let result: anyhow::Result<_> = (|| {
+        let resources = Resources::open(path)?;
+        let state = AppState::new(resources)?;
+        Ok(state)
+    })();
 
-            thread::spawn(move || match run_renderer(receiver) {
-                Ok(()) => (),
-                Err(err) => log::error!("Renderer failed with: {}", err),
-            });
-            State::run(Settings::with_flags((resources, sender))).map_err(|err| format!("Iced failure: {}", err))
+    let state = match result {
+        Ok(state) => state,
+        Err(err) => {
+            let msg = format!("Could not load resources at the specified path: {}", err);
+            MessageDialog::new().set_text(&msg).show_alert().unwrap();
+            return;
         }
-        Ok(_) => Ok(()),
-        Err(err) => Err(format!("File dialog error: {}", err)),
-    }
+    };
+
+    let win = WindowConfig::new()
+        .set_vsync(true)
+        .set_lazy_loop(true)
+        .set_high_dpi(true)
+        .set_resizable(true)
+        .set_lazy_loop(false)
+        .set_size(1024, 768);
+
+    notan::init_with(|_: &mut Assets, _: &mut Graphics| state)
+        .add_config(win)
+        .add_config(EguiConfig)
+        .add_config(DrawConfig)
+        .draw(draw)
+        .build()
+        .unwrap()
 }
 
-#[derive(Debug, Clone)]
-enum AnimationType {
-    Npc = 0,
-    Interactive = 1,
-    Pet = 2,
-}
-
-impl AnimationType {
-    pub fn from(i: usize) -> Option<AnimationType> {
-        match i {
-            0 => Some(AnimationType::Npc),
-            1 => Some(AnimationType::Interactive),
-            2 => Some(AnimationType::Pet),
-            _ => None,
-        }
-    }
-}
-
-struct State {
-    input: text_input::State,
-    type_list: SelectList<String>,
-    animation_list: SelectList<NamedOption<String>>,
-    record_list: SelectList<String>,
-    button: button::State,
-    filter: String,
-    selected_type: AnimationType,
-    options: Vec<NamedOption<String>>,
-    resources: Resources<File>,
-    sender: Sender<RenderCommand>,
-    animation: Option<Animation>,
-    image: Option<RgbaImage>,
-}
-
-#[derive(Debug, Clone)]
-enum Message {
-    Reload,
-    FilterChanged(String),
-    TypeSelected(AnimationType),
-    AnimationSelected(usize),
-    RecordSelected(usize),
-    SaveGif,
-}
-
-impl Application for State {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Flags = (Resources<File>, Sender<RenderCommand>);
-
-    fn new(flags: Self::Flags) -> (State, Command<Message>) {
-        let mut initial = State {
-            input: text_input::State::default(),
-            type_list: SelectList::new(vec!["Npc".to_owned(), "Interactive".to_owned(), "Pet".to_owned()]),
-            animation_list: SelectList::new(vec![]),
-            record_list: SelectList::new(vec![]),
-            button: button::State::default(),
-            filter: "".to_owned(),
-            selected_type: AnimationType::Npc,
-            options: vec![],
-            resources: flags.0,
-            sender: flags.1,
-            animation: None,
-            image: None,
-        };
-        let cmd = initial.borrow_mut().update(Message::TypeSelected(AnimationType::Npc));
-        (initial, cmd)
+fn draw(_app: &mut App, gfx: &mut Graphics, plugins: &mut Plugins, state: &mut AppState) {
+    if !state.should_render() {
+        return;
     }
 
-    fn title(&self) -> String {
-        "Animation Browser".to_owned()
-    }
+    let ui_draw = plugins.egui(|ctx| state.update_ui(ctx));
+    gfx.render(&ui_draw);
 
-    fn update(&mut self, message: Message) -> Command<Message> {
-        match message {
-            Message::Reload => {
-                let filter = &self.filter.clone();
-                let animations = self
-                    .options
-                    .iter()
-                    .filter(|opt| opt.0.to_lowercase().contains(&filter.to_lowercase()))
-                    .cloned()
-                    .collect();
-                self.animation_list.set_options(animations);
-            }
-            Message::FilterChanged(filter) => {
-                self.filter = filter;
-                self.update(Message::Reload);
-            }
-            Message::TypeSelected(t) => {
-                self.selected_type = t;
-                match self.selected_type {
-                    AnimationType::Npc => {
-                        self.options = self
-                            .resources
-                            .load_data::<Monster>()
-                            .unwrap()
-                            .elements
-                            .iter()
-                            .map(|m| {
-                                let name = self
-                                    .resources
-                                    .translations
-                                    .get(Translation::Monster, &format!("{}", m.id));
-                                NamedOption(
-                                    name.cloned().unwrap_or(format!("Monster {}", m.id)),
-                                    format!("{}", m.gfx),
-                                )
-                            })
-                            .collect();
-                    }
-                    AnimationType::Interactive => {
-                        self.options = self
-                            .resources
-                            .load_data::<InteractiveElementModel>()
-                            .unwrap()
-                            .elements
-                            .iter()
-                            .map(|e| {
-                                let name = self
-                                    .resources
-                                    .translations
-                                    .get(Translation::InteractiveElementView, &format!("{}", e.id));
-                                NamedOption(name.cloned().unwrap_or(format!("IE {}", e.id)), format!("{}", e.gfx))
-                            })
-                            .collect();
-                    }
-                    AnimationType::Pet => {
-                        self.options = self
-                            .resources
-                            .load_data::<Pet>()
-                            .unwrap()
-                            .elements
-                            .iter()
-                            .map(|p| {
-                                let name = self
-                                    .resources
-                                    .translations
-                                    .get(Translation::Item, &format!("{}", p.item_ref_id));
-                                NamedOption(
-                                    name.cloned().unwrap_or(format!("Pet {}", p.id)),
-                                    format!("{}", p.gfx_id),
-                                )
-                            })
-                            .collect();
-                    }
-                }
-                self.update(Message::Reload);
-            }
-            Message::AnimationSelected(i) => {
-                let archive = match self.selected_type {
-                    AnimationType::Npc => &mut self.resources.npc_animations,
-                    AnimationType::Interactive => &mut self.resources.interactive_animations,
-                    AnimationType::Pet => &mut self.resources.pet_animations,
-                };
-                let name = self.animation_list.options.get(i).unwrap();
-                if let Result::Ok(animation) = archive.load_animation(&name.1) {
-                    let texture_id = animation.texture.clone().unwrap().name;
-                    let mut options = animation
-                        .sprites
-                        .iter()
-                        .filter_map(|(_, sprite)| sprite.name.name.clone())
-                        .collect::<Vec<_>>();
-                    options.sort();
-
-                    self.image = Some(archive.load_texture(&texture_id).unwrap());
-                    self.animation = Some(animation);
-                    self.record_list.set_options(options);
-                    self.animation_list.update(SelectMessage(i))
-                }
-            }
-            Message::RecordSelected(i) => {
-                let State {
-                    animation,
-                    image,
-                    record_list,
-                    ..
-                } = self;
-                if let Some(animation) = animation {
-                    if let Some(image) = image {
-                        let sprite = record_list.options.get(i).unwrap().to_owned();
-                        let cmd = RenderCommand::Draw(animation.clone(), image.clone(), sprite);
-                        self.sender.send(cmd).unwrap();
-                        self.record_list.update(SelectMessage(i));
-                    }
-                }
-            }
-            Message::SaveGif => self.sender.send(RenderCommand::SaveGif).unwrap(),
-        }
-        Command::none()
-    }
-
-    fn view(&mut self) -> Element<Message> {
-        let State {
-            input,
-            filter,
-            type_list,
-            animation_list,
-            record_list,
-            button,
-            ..
-        } = self;
-        let input = TextInput::new(input, "Filter by ID", filter, Message::FilterChanged).padding(5);
-
-        let types = type_list
-            .view()
-            .map(|m| Message::TypeSelected(AnimationType::from(m.0).unwrap()));
-        let animations = animation_list.view().map(|m| Message::AnimationSelected(m.0));
-        let records = record_list.view().map(|m| Message::RecordSelected(m.0));
-
-        let content = Row::new()
-            .push(Container::new(types).width(Length::Fill).style(theme::SelectList))
-            .push(Container::new(animations).width(Length::Fill).style(theme::SelectList))
-            .push(Container::new(records).width(Length::Fill).style(theme::SelectList))
-            .spacing(20)
-            .height(Length::Fill);
-
-        let save_button = Button::new(button, Text::new("Save GIF"))
-            .height(Length::Units(32))
-            .on_press(Message::SaveGif);
-
-        Column::new()
-            .push(input)
-            .push(content)
-            .push(save_button)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .spacing(20)
-            .padding(20)
-            .into()
-    }
-}
-
-#[derive(Debug, Clone)]
-struct NamedOption<A>(String, A);
-
-impl<A: Display> Display for NamedOption<A> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-struct SelectList<A> {
-    scroll: scrollable::State,
-    buttons: Vec<button::State>,
-    options: Vec<A>,
-    selected: usize,
-}
-
-#[derive(Debug, Clone)]
-struct SelectMessage(usize);
-
-impl<A: Display> SelectList<A> {
-    fn new(options: Vec<A>) -> Self {
-        SelectList {
-            scroll: scrollable::State::default(),
-            buttons: Self::default_buttons(options.len()),
-            options,
-            selected: 0,
-        }
-    }
-
-    fn update(&mut self, message: SelectMessage) {
-        self.selected = message.0;
-    }
-
-    fn set_options(&mut self, options: Vec<A>) {
-        self.buttons = Self::default_buttons(options.len());
-        self.options = options;
-    }
-
-    fn view(&mut self) -> Element<SelectMessage> {
-        let SelectList {
-            buttons,
-            scroll,
-            options,
-            selected,
-            ..
-        } = self;
-        let body =
-            buttons
-                .iter_mut()
-                .zip(options)
-                .enumerate()
-                .fold(Column::new().padding(2), |col, (i, (state, option))| {
-                    let button = Button::new(state, Text::new(format!("{}", option)))
-                        .on_press(SelectMessage(i))
-                        .width(Length::Fill);
-                    let styled = if *selected == i {
-                        button.style(theme::SelectActiveOption)
-                    } else {
-                        button.style(theme::SelectOption)
-                    };
-                    col.push(styled)
-                });
-
-        Scrollable::new(scroll).push(body.width(Length::Fill)).into()
-    }
-
-    fn default_buttons(size: usize) -> Vec<button::State> {
-        std::iter::repeat(button::State::default()).take(size).collect()
-    }
-}
-
-mod theme {
-    use iced::*;
-
-    pub struct SelectOption;
-
-    impl button::StyleSheet for SelectOption {
-        fn active(&self) -> button::Style {
-            button::Style {
-                border_radius: 4.,
-                background: None,
-                ..button::Style::default()
-            }
-        }
-
-        fn hovered(&self) -> button::Style {
-            button::Style {
-                border_radius: 4.,
-                background: Some(Background::Color(Color::from_rgb8(200, 200, 200))),
-                ..button::Style::default()
-            }
-        }
-    }
-
-    pub struct SelectActiveOption;
-
-    impl button::StyleSheet for SelectActiveOption {
-        fn active(&self) -> button::Style {
-            button::Style {
-                border_radius: 4.,
-                background: Some(Background::Color(Color::from_rgb8(225, 225, 225))),
-                ..button::Style::default()
-            }
-        }
-
-        fn hovered(&self) -> button::Style {
-            button::Style {
-                border_radius: 4.,
-                background: Some(Background::Color(Color::from_rgb8(200, 200, 200))),
-                ..button::Style::default()
-            }
-        }
-    }
-
-    pub struct SelectList;
-
-    impl container::StyleSheet for SelectList {
-        fn style(&self) -> container::Style {
-            container::Style {
-                border_width: 1.,
-                border_color: Color::from_rgb8(200, 200, 200),
-                border_radius: 4.,
-                ..container::Style::default()
-            }
-        }
-    }
+    let canvas_draw = state.update_canvas(gfx);
+    gfx.render(&canvas_draw);
 }

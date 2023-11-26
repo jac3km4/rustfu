@@ -1,12 +1,18 @@
+use euclid::default::{Box2D, Transform2D};
+
 use crate::frame_reader::FrameReader;
-use crate::types::{Animation, Shape, Sprite, SpritePayload, TransformTable};
-use quicksilver::geom::{Transform, Vector};
-use quicksilver::graphics::Color;
+use crate::types::{Animation, Color, Shape, Sprite, SpritePayload, TransformTable};
 
 pub trait Render {
-    fn render(&mut self, shape: &Shape, transform: SpriteTransform) -> ();
+    fn render(&mut self, shape: &Shape, transform: SpriteTransform);
 
-    fn render_sprite(&mut self, animation: &Animation, sprite: &Sprite, transform: SpriteTransform, frame: u32) {
+    fn render_sprite(
+        &mut self,
+        animation: &Animation,
+        sprite: &Sprite,
+        transform: SpriteTransform,
+        frame: u32,
+    ) {
         let empty_table = &TransformTable::EMPTY;
         let table = animation.transform.as_ref().unwrap_or(empty_table);
         let mut reader = FrameReader::new(&sprite.frame_data, table);
@@ -23,7 +29,7 @@ pub trait Render {
                 }
             }
             SpritePayload::Indexed(frame_pos, sprite_info, action_info) => {
-                let mult = if action_info.len() == 0 { 2 } else { 3 };
+                let mult = if action_info.is_empty() { 2 } else { 3 };
                 let index = (frame as usize % sprite.frame_count()) * mult;
                 let offset = *frame_pos.get(index).unwrap() as usize;
                 let current = *frame_pos.get(index + 1).unwrap() as usize;
@@ -36,21 +42,29 @@ pub trait Render {
         }
     }
 
-    fn render_by_id(&mut self, anm: &Animation, id: i16, parent: &SpriteTransform, reader: &mut FrameReader, i: u32) {
-        let transform = reader.read_transformation().unwrap().combine(parent.clone());
-        match anm.sprites.get(&id) {
-            Some(sprite) => self.render_sprite(anm, sprite, transform, i),
-            None => match anm.shapes.get(&id) {
-                Some(shape) => self.render(shape, transform),
-                None => (),
-            },
+    fn render_by_id(
+        &mut self,
+        anm: &Animation,
+        id: i16,
+        parent: &SpriteTransform,
+        reader: &mut FrameReader,
+        frame: u32,
+    ) {
+        let transform = reader
+            .read_transformation()
+            .expect("transormation should be present")
+            .combine(parent);
+        if let Some(sprite) = anm.sprites.get(&id) {
+            self.render_sprite(anm, sprite, transform, frame)
+        } else if let Some(shape) = anm.shapes.get(&id) {
+            self.render(shape, transform)
         }
     }
 }
 
 #[derive(Debug, Clone)]
 pub struct SpriteTransform {
-    pub position: Transform,
+    pub position: Transform2D<f32>,
     pub color: ColorTransform,
 }
 
@@ -58,23 +72,23 @@ impl SpriteTransform {
     #[inline]
     pub fn identity() -> SpriteTransform {
         SpriteTransform {
-            position: Transform::IDENTITY,
+            position: Transform2D::identity(),
             color: ColorTransform::identity(),
         }
     }
 
     #[inline]
-    pub fn combine(self, other: SpriteTransform) -> SpriteTransform {
+    pub fn combine(self, other: &SpriteTransform) -> SpriteTransform {
         SpriteTransform {
-            position: self.position.then(other.position),
-            color: self.color.combine(other.color),
+            position: self.position.then(&other.position),
+            color: self.color.combine(&other.color),
         }
     }
 
     #[inline]
     pub fn translate(x: f32, y: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform::translate(Vector::new(x, y)),
+            position: Transform2D::translation(x, y),
             color: ColorTransform::identity(),
         }
     }
@@ -82,7 +96,7 @@ impl SpriteTransform {
     #[inline]
     pub fn rotate(rx0: f32, ry0: f32, rx1: f32, ry1: f32) -> SpriteTransform {
         SpriteTransform {
-            position: [[rx0, rx1, 0.], [ry0, ry1, 0.], [0., 0., 1.]].into(),
+            position: Transform2D::new(rx0, ry0, rx1, ry1, 0., 0.),
             color: ColorTransform::identity(),
         }
     }
@@ -90,7 +104,7 @@ impl SpriteTransform {
     #[inline]
     pub fn scale(sx: f32, sy: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform::scale(Vector::new(sx, sy)),
+            position: Transform2D::scale(sx, sy),
             color: ColorTransform::identity(),
         }
     }
@@ -98,7 +112,7 @@ impl SpriteTransform {
     #[inline]
     pub fn color_multiply(red: f32, green: f32, blue: f32, alpha: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform::IDENTITY,
+            position: Transform2D::identity(),
             color: ColorTransform::Multiply(red, green, blue, alpha),
         }
     }
@@ -106,7 +120,7 @@ impl SpriteTransform {
     #[inline]
     pub fn color_add(red: f32, green: f32, blue: f32, alpha: f32) -> SpriteTransform {
         SpriteTransform {
-            position: Transform::IDENTITY,
+            position: Transform2D::identity(),
             color: ColorTransform::Add(red, green, blue, alpha),
         }
     }
@@ -125,38 +139,70 @@ impl ColorTransform {
         ColorTransform::Add(0., 0., 0., 0.)
     }
 
-    #[inline]
-    pub fn combine(self, other: ColorTransform) -> ColorTransform {
+    pub fn combine(self, other: &ColorTransform) -> ColorTransform {
         match (self, other) {
-            (ColorTransform::Multiply(lr, lg, lb, la), ColorTransform::Multiply(rr, rg, rb, ra)) => {
-                ColorTransform::Multiply(lr * rr, lg * rg, lb * rb, la * ra)
-            }
+            (
+                ColorTransform::Multiply(lr, lg, lb, la),
+                ColorTransform::Multiply(rr, rg, rb, ra),
+            ) => ColorTransform::Multiply(lr * rr, lg * rg, lb * rb, la * ra),
             (ColorTransform::Add(lr, lg, lb, la), ColorTransform::Add(rr, rg, rb, ra)) => {
                 ColorTransform::Add(lr + rr, lg + rg, lb + rb, la + ra)
             }
-            (l, r) => ColorTransform::Combine(Box::new(l), Box::new(r)),
+            (l, r) => ColorTransform::Combine(Box::new(l), Box::new(r.clone())),
         }
     }
 
     pub fn fold(self, color: Color) -> Color {
         match self {
             ColorTransform::Multiply(r, g, b, a) => Color {
-                r: color.r * r,
-                g: color.g * g,
-                b: color.b * b,
-                a: color.a * a,
+                red: color.red * r,
+                green: color.green * g,
+                blue: color.blue * b,
+                alpha: color.alpha * a,
             },
             ColorTransform::Add(r, g, b, a) => Color {
-                r: color.r + r,
-                g: color.g + g,
-                b: color.b + b,
-                a: color.a + a,
+                red: color.red + r,
+                green: color.green + g,
+                blue: color.blue + b,
+                alpha: color.alpha + a,
             },
             ColorTransform::Combine(l, r) => r.fold(l.fold(color)),
         }
     }
 
-    pub fn color(self) -> Color {
+    #[inline]
+    pub fn into_color(self) -> Color {
         self.fold(Color::WHITE)
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Measure {
+    bbox: Box2D<f32>,
+}
+
+impl Measure {
+    pub fn run(animation: &Animation, sprite: &Sprite, scale: f32) -> Box2D<f32> {
+        let mut measure = Measure::default();
+        measure.render_sprite(animation, sprite, SpriteTransform::scale(scale, scale), 0);
+        measure.into_box()
+    }
+
+    #[inline]
+    pub fn into_box(self) -> Box2D<f32> {
+        self.bbox
+    }
+}
+
+impl Render for Measure {
+    fn render(&mut self, shape: &Shape, transform: SpriteTransform) {
+        let rect = Box2D::from_origin_and_size(
+            euclid::point2(shape.offset_x, shape.offset_y),
+            euclid::size2(shape.width as f32, shape.height as f32),
+        );
+        self.bbox = transform
+            .position
+            .outer_transformed_box(&rect)
+            .union(&self.bbox)
     }
 }
