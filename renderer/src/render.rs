@@ -17,10 +17,7 @@ pub trait Render {
         let table = animation.transform.as_ref().unwrap_or(empty_table);
         let mut reader = FrameReader::new(&sprite.frame_data, table);
         match &sprite.payload {
-            SpritePayload::Single(sprite_id, _) => {
-                self.render_by_id(animation, *sprite_id, &transform, &mut reader, frame);
-            }
-            SpritePayload::SingleNoAction(sprite_id) => {
+            SpritePayload::Single(sprite_id, _) | SpritePayload::SingleNoAction(sprite_id) => {
                 self.render_by_id(animation, *sprite_id, &transform, &mut reader, frame);
             }
             SpritePayload::SingleFrame(sprite_ids, _) => {
@@ -47,7 +44,7 @@ pub trait Render {
         anm: &Animation,
         id: i16,
         parent: &SpriteTransform,
-        reader: &mut FrameReader,
+        reader: &mut FrameReader<'_>,
         frame: u32,
     ) {
         let transform = reader
@@ -55,9 +52,9 @@ pub trait Render {
             .expect("transormation should be present")
             .combine(parent);
         if let Some(sprite) = anm.sprites.get(&id) {
-            self.render_sprite(anm, sprite, transform, frame)
+            self.render_sprite(anm, sprite, transform, frame);
         } else if let Some(shape) = anm.shapes.get(&id) {
-            self.render(shape, transform)
+            self.render(shape, transform);
         }
     }
 }
@@ -203,6 +200,6 @@ impl Render for Measure {
         self.bbox = transform
             .position
             .outer_transformed_box(&rect)
-            .union(&self.bbox)
+            .union(&self.bbox);
     }
 }

@@ -25,7 +25,7 @@ pub fn write_webp(
     gfx: &mut Graphics,
     player: &mut AnimationPlayer<NotanBackend>,
     scale: f32,
-) -> anyhow::Result<impl AsRef<[u8]>> {
+) -> anyhow::Result<impl AsRef<[u8]> + use<>> {
     let (inner, outer) = calculate_dimensions(player, scale);
     let mut writer = webp_animation::Encoder::new((outer.width() as _, outer.height() as _))?;
     write_frames(gfx, player, &mut writer, scale, inner, outer)?;

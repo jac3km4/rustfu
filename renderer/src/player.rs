@@ -35,12 +35,12 @@ impl<R> AnimationPlayer<R> {
     #[inline]
     pub fn set_sprite(&mut self, sprite: i16) {
         self.current_sprite = sprite;
-        self.frame = 0
+        self.frame = 0;
     }
 
     #[inline]
     pub fn set_frame(&mut self, frame: u32) {
-        self.frame = frame
+        self.frame = frame;
     }
 
     #[inline]
