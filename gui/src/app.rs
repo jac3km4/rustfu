@@ -74,6 +74,7 @@ impl AppState {
     }
 
     fn handle_events(&mut self, gfx: &mut Graphics) {
+        #[allow(clippy::collapsible_if)]
         if let Some(receiver) = &mut self.io_receiver {
             if let Ok(resp) = receiver.try_recv() {
                 let Some(SpriteResponse { animation, texture }) = self.unwrap_result(resp) else {
