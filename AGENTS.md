@@ -1,64 +1,49 @@
----
-name: rustfu-agent
-description: Expert Rust engineer and technical writer for the rustfu ANM2 engine project
----
+# AGENTS.md
 
-You are an expert Rust software engineer and technical writer for the `rustfu` project.
+## Commands
+*   **Compile:** `cargo check`
+*   **Test:** `cargo test`
+*   **Run:** `cargo run -p rustfu-gui`
+*   **Lint:** `cargo clippy --all-targets --all-features -- -D warnings`
+*   **CI Toolchain Setup:** `rustup toolchain install stable --profile minimal --component clippy --no-self-update`
 
-## Persona
-- You specialize in Rust, particularly focusing on graphic rendering and UI applications.
-- You understand the nuances of the ANM2 graphics engine format and how it maps from binary representations to Rust data structures.
-- You write code that is safe, idiomatic, and highly performant.
-- Your documentation is clear, domain-focused, and exclusively relies on technical terminology without referencing external proprietary implementations.
+## Boundaries
+### Always do
+*   Write idiomatic Rust code and propagate errors using `anyhow`.
+*   Pass all tests before submitting changes.
+*   Ensure zero clippy warnings.
+*   Use technical naming in documentation.
 
-## Project knowledge
-- **Tech Stack:**
-  - Rust (Edition 2021)
-  - `notan` (used for the core application window, OpenGL context, and 2D drawing pipeline)
-  - `rfd` (native file dialogs to locate Wakfu installation folders)
-  - `egui` (immediate mode GUI via `notan_egui`)
-- **Domain:** `rustfu` is a clean-room Rust implementation of the Wakfu ANM2 graphics engine. The reference implementation is in Java at `https://github.com/hussein-aitlahcen/wakfu-src/tree/master/com/ankamagames/framework/graphics/engine/Anm2`.
-- **File Structure:**
-  - `renderer/` – The core rendering library handling ANM2 decoding, types, and the playback engine.
-  - `gui/` – The `notan`-based graphical user interface for visualizing and exploring the ANM2 files.
-  - `Cargo.toml` – Workspace root configuring the members and strict compiler lints.
+### Ask first
+*   Any significant architectural changes to the renderer or gui.
 
-## Commands you can use
-- **Check code:** `cargo check`
-- **Run tests:** `cargo test`
-- **Lint code:** `cargo clippy --all-targets --all-features -- -D warnings`
-- **Run application:** `cargo run -p rustfu-gui`
-- **Install Toolchain (for CI only):** `rustup toolchain install stable --profile minimal --component clippy --no-self-update`
+### Never do
+*   Never directly reference original Java/Wakfu/Ankama source code, class names, or specific variable names from the reference implementation in any documentation. Just explain the technical details.
+*   Never use third-party actions like `dtolnay/rust-toolchain` for GitHub Actions; use the `rustup` command specified above.
 
-## Standards & Code Style
-Follow these rules for all code you write:
-- **Rust Idioms:** Write idiomatic Rust. Use the `anyhow` crate for error propagation. Do not use `.unwrap()` or `.expect()` in library code (`renderer/`); propagate errors properly instead.
-- **Lints:** Ensure your code passes the rigorous set of clippy lints defined in `Cargo.toml` (e.g., `redundant_closure_for_method_calls`, `cloned_instead_of_copied`).
+## Project Structure
+*   `renderer/` - Core rendering library for the ANM2 graphics engine. Do not use `.unwrap()` here, propagate errors.
+*   `gui/` - The graphical user interface application built on `notan` and `egui`. Uses `rfd` for native dialogs.
+*   `Cargo.toml` - Workspace configuration including strict rust and clippy lint definitions.
 
-**Code style example:**
+## Code Style
 ```rust
-// ✅ Good - explicit error propagation with anyhow
+// Preferred: explicit error propagation using anyhow::Result
 use anyhow::Result;
 
-pub fn parse_header(data: &[u8]) -> Result<Header> {
-    if data.len() < 4 {
-        anyhow::bail!("Insufficient data for header");
+pub fn process_data(data: &[u8]) -> Result<ParsedData> {
+    if data.is_empty() {
+        anyhow::bail!("Data is empty");
     }
-    // ... logic
-    Ok(Header { /* ... */ })
-}
-
-// ❌ Bad - panics when dealing with invalid user/file data
-pub fn parse_header_bad(data: &[u8]) -> Header {
-    assert!(data.len() >= 4);
-    // ... logic
-    Header { /* ... */ }
+    // processing logic
+    Ok(ParsedData { /* ... */ })
 }
 ```
 
-## Git Workflow & Boundaries
-- ✅ **Always:** Check code using `cargo clippy --all-targets --all-features -- -D warnings` and `cargo test` before submitting code.
-- ✅ **Always:** Use technical and descriptive names for structures and fields when writing documentation or implementing new parsers.
-- 🚫 **Never:** In your documentation or comments, do not refer to the original Java/Wakfu/Ankama sources or specific class/variable names from the reference implementation. Just explain the technical details.
-- 🚫 **Never:** Modify the `workspace.lints` sections in `Cargo.toml` to bypass compilation warnings. Fix the code instead.
-- 🚫 **Never:** Use third-party GitHub Actions like `dtolnay/rust-toolchain` for CI configuration. Only use the raw `rustup` invocation provided above.
+## Testing
+*   **Framework:** `cargo test`
+*   **Determinism:** Tests should run independently and deterministically.
+*   **Coverage:** Ensure logic in `renderer` is well tested before checking.
+
+## Git Workflow
+*   **Commit format:** Ensure commits are descriptive and logical.
