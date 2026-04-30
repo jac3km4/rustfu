@@ -1,7 +1,7 @@
 #![windows_subsystem = "windows"]
 
 use app::AppState;
-use native_dialog::{FileDialog, MessageDialog};
+use rfd::{FileDialog, MessageDialog};
 use notan::draw::DrawConfig;
 use notan::egui::*;
 use notan::prelude::*;
@@ -15,14 +15,13 @@ mod writer;
 
 #[notan_main]
 fn main() {
-    if MessageDialog::new()
-        .set_text("Select the Wakfu installation folder")
-        .show_alert()
-        .is_err()
-    {
-        return;
-    }
-    let Ok(Some(path)) = FileDialog::new().show_open_single_dir() else {
+    MessageDialog::new()
+        .set_title("Rustfu")
+        .set_description("Select the Wakfu installation folder")
+        .set_buttons(rfd::MessageButtons::Ok)
+        .show();
+
+    let Some(path) = FileDialog::new().pick_folder() else {
         return;
     };
 
@@ -36,7 +35,11 @@ fn main() {
         Ok(state) => state,
         Err(err) => {
             let msg = format!("Could not load resources at the specified path: {}", err);
-            MessageDialog::new().set_text(&msg).show_alert().unwrap();
+            MessageDialog::new()
+                .set_title("Error")
+                .set_description(&msg)
+                .set_buttons(rfd::MessageButtons::Ok)
+                .show();
             return;
         }
     };
@@ -56,7 +59,7 @@ fn main() {
         .add_config(DrawConfig)
         .draw(draw)
         .build()
-        .unwrap()
+        .unwrap();
 }
 
 fn draw(_app: &mut App, gfx: &mut Graphics, plugins: &mut Plugins, state: &mut AppState) {

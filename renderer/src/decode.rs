@@ -112,7 +112,7 @@ impl Decode for String {
             buf.push(c);
             c = cursor.read_u8()?;
         }
-        String::from_utf8(buf).map_err(|err| io::Error::new(io::ErrorKind::Other, err.to_string()))
+        String::from_utf8(buf).map_err(|err| io::Error::other(err.to_string()))
     }
 }
 
@@ -237,8 +237,7 @@ impl Decode for Sprite {
                 let action_info = cursor.decode_prefixed::<u16, i16>()?;
                 Ok(SpritePayload::Indexed(frame_pos, sprite_ids, action_info))
             }
-            other => Err(io::Error::new(
-                io::ErrorKind::Other,
+            other => Err(io::Error::other(
                 format!("Unexpected case: {}", other),
             )),
         };
@@ -272,8 +271,7 @@ impl Decode for FrameData {
             }
             2 => Ok(FrameData::Shorts(cursor.decode_n(size)?)),
             4 => Ok(FrameData::Ints(cursor.decode_n(size)?)),
-            other => Err(io::Error::new(
-                io::ErrorKind::Other,
+            other => Err(io::Error::other(
                 format!("Unexpected case: {}", other),
             )),
         }
@@ -409,7 +407,7 @@ impl Decode for Action {
                     let count = (param_count - 1) / 2;
                     let mut names = vec![first];
                     for _ in 0..count {
-                        names.push(cursor.decode()?)
+                        names.push(cursor.decode()?);
                     }
                     let percents = cursor.decode_n::<u8>(count.into())?;
                     Ok(Action::GoToRandom(names, percents))
@@ -445,8 +443,7 @@ impl Decode for Action {
                 ))
             }
             10 => Ok(Action::SetRadius(cursor.decode()?)),
-            other => Err(io::Error::new(
-                io::ErrorKind::Other,
+            other => Err(io::Error::other(
                 format!("Unexpected case: {}", other),
             )),
         }

@@ -2,10 +2,11 @@ use std::fs::File;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use native_dialog::FileDialog;
+use rfd::FileDialog;
 use notan::draw::{CreateDraw, Draw};
 use notan::egui;
 use notan::prelude::*;
+use ringbuf::traits::{Consumer, Producer, Split};
 use rustfu_renderer::notan::NotanBackend;
 use rustfu_renderer::player::AnimationPlayer;
 use rustfu_renderer::render::{Measure, SpriteTransform};
@@ -27,7 +28,7 @@ pub struct AppState {
     player: Option<AnimationPlayer<NotanBackend>>,
     last_render: Instant,
 
-    io_requests: ringbuf::HeapProducer<SpriteRequest>,
+    io_requests: ringbuf::HeapProd<SpriteRequest>,
     io_receiver: Option<oneshot::Receiver<anyhow::Result<SpriteResponse>>>,
 }
 
@@ -110,7 +111,7 @@ impl AppState {
                     let (sender, receiver) = oneshot::channel();
                     let kind = self.ui.selected_entity();
                     self.io_requests
-                        .push(SpriteRequest { id, kind, sender })
+                        .try_push(SpriteRequest { id, kind, sender })
                         .unwrap();
                     self.io_receiver = Some(receiver);
                 }
@@ -127,8 +128,8 @@ impl AppState {
 
                         let result = (|| {
                             let Some(path) = FileDialog::new()
-                                .set_filename("output.webp")
-                                .show_save_single_file()?
+                                .set_file_name("output.webp")
+                                .save_file()
                             else {
                                 return Ok(());
                             };
@@ -147,7 +148,7 @@ impl AppState {
                         tmp.set_sprite(player.current_sprite_id());
 
                         let result = (|| {
-                            let Some(dir) = FileDialog::new().show_open_single_dir()? else {
+                            let Some(dir) = FileDialog::new().pick_folder() else {
                                 return Ok(());
                             };
                             writer::write_individual_frames(gfx, &mut tmp, DEFAULT_SCALE, dir)
@@ -159,12 +160,13 @@ impl AppState {
         }
     }
 
+    #[allow(tail_expr_drop_order)]
     fn io_handler(
-        mut consumer: ringbuf::HeapConsumer<SpriteRequest>,
+        mut consumer: ringbuf::HeapCons<SpriteRequest>,
         resources: &mut Resources<File>,
     ) {
         loop {
-            while let Some(req) = consumer.pop() {
+            while let Some(req) = consumer.try_pop() {
                 let source = match req.kind {
                     AnimatedEntityKind::Monster => &mut resources.npc_animations,
                     AnimatedEntityKind::InteractiveElementModel => {
@@ -179,11 +181,11 @@ impl AppState {
                         .texture
                         .as_ref()
                         .ok_or_else(|| anyhow::anyhow!("animation {} has no texture", req.id))?;
-                    let texture = source.load_texture(&texture.name.to_string())?;
+                    let texture = source.load_texture(&texture.name.clone())?;
                     Ok(SpriteResponse::new(animation, texture))
                 })();
 
-                req.sender.send(res).ok();
+                drop(req.sender.send(res));
             }
             std::thread::sleep(Duration::from_millis(FRAME_TIME));
         }

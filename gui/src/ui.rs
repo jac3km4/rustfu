@@ -74,10 +74,10 @@ impl UiState {
                 ui.separator();
 
                 if ui.button("Save as WEBP").clicked() {
-                    self.events.push(UiEvent::SaveAsWebp)
+                    self.events.push(UiEvent::SaveAsWebp);
                 }
                 if ui.button("Save as Frames").clicked() {
-                    self.events.push(UiEvent::SaveAsFrames)
+                    self.events.push(UiEvent::SaveAsFrames);
                 }
 
                 ui.separator();
@@ -131,7 +131,7 @@ impl UiState {
                         for &idx in &filtered[row_range.start..row_range.end] {
                             let entry = &entries[idx];
                             if ui.selectable_label(false, entry.label()).clicked() {
-                                self.events.push(UiEvent::RequestSprite(entry.id()))
+                                self.events.push(UiEvent::RequestSprite(entry.id()));
                             }
                         }
                     });
@@ -152,7 +152,7 @@ impl UiState {
                                     continue;
                                 };
                                 if ui.selectable_label(false, name).clicked() {
-                                    self.events.push(UiEvent::SetSprite(id))
+                                    self.events.push(UiEvent::SetSprite(id));
                                 }
                             }
                         });

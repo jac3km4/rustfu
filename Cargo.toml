@@ -9,16 +9,44 @@ edition = "2021"
 
 [workspace.dependencies]
 anyhow = "1"
-hashbrown = "0.14"
-byteorder = "1.3"
+hashbrown = "0.17"
+byteorder = "1.5"
 euclid = "0.22"
-oneshot = "0.1"
-ringbuf = "0.3"
-image = { version = "0.24", default-features = false }
-zip = { version = "0.6", default-features = false }
-webp-animation = "0.9"
-notan = { version = "0.11", default-features = false }
-native-dialog = "0.7"
+oneshot = "0.2"
+ringbuf = "0.4"
+image = { version = "0.25", default-features = false }
+zip = { version = "8.6", default-features = false }
+webp-animation = "0.10"
+notan = { version = "0.14", default-features = false }
 
 [profile.release]
 lto = "thin"
+
+[workspace.lints.rust]
+warnings = "warn"
+future-incompatible = "warn"
+let-underscore = "warn"
+nonstandard-style = "warn"
+rust-2018-compatibility = "warn"
+rust-2018-idioms = "warn"
+rust-2021-compatibility = "warn"
+rust-2024-compatibility = "warn"
+
+[workspace.lints.clippy]
+all = "warn"
+match_same_arms = "warn"
+semicolon_if_nothing_returned = "warn"
+single_match_else = "warn"
+redundant_closure_for_method_calls = "warn"
+cloned_instead_of_copied = "warn"
+redundant_else = "warn"
+unnested_or_patterns = "warn"
+unreadable_literal = "warn"
+type_repetition_in_bounds = "warn"
+equatable_if_let = "warn"
+implicit_clone = "warn"
+default_trait_access = "warn"
+explicit_deref_methods = "warn"
+explicit_iter_loop = "warn"
+inefficient_to_string = "warn"
+match_bool = "warn"
