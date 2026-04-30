@@ -74,9 +74,8 @@ impl AppState {
     }
 
     fn handle_events(&mut self, gfx: &mut Graphics) {
-        #[allow(clippy::collapsible_if)]
-        if let Some(receiver) = &mut self.io_receiver {
-            if let Ok(resp) = receiver.try_recv() {
+        let resp_opt = self.io_receiver.as_mut().and_then(|r| r.try_recv().ok());
+        if let Some(resp) = resp_opt {
                 let Some(SpriteResponse { animation, texture }) = self.unwrap_result(resp) else {
                     return;
                 };
@@ -97,7 +96,6 @@ impl AppState {
                 self.ui.set_animation(animation);
                 self.player = Some(player);
                 self.io_receiver = None;
-            }
         }
 
         let events = self.ui.take_events();
