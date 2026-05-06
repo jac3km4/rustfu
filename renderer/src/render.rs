@@ -21,8 +21,12 @@ pub trait Render {
                 self.render_by_id(animation, *sprite_id, &transform, &mut reader, frame);
             }
             SpritePayload::SingleFrame(sprite_ids, _) => {
+                let transform = reader
+                    .read_transformation()
+                    .expect("transformation should be present")
+                    .combine(&transform);
                 for sprite_id in sprite_ids {
-                    self.render_by_id(animation, *sprite_id, &transform, &mut reader, frame);
+                    self.render_at(animation, *sprite_id, transform.clone(), frame);
                 }
             }
             SpritePayload::Indexed(frame_pos, sprite_info, action_info) => {
@@ -39,6 +43,20 @@ pub trait Render {
         }
     }
 
+    fn render_at(
+        &mut self,
+        anm: &Animation,
+        id: i16,
+        transform: SpriteTransform,
+        frame: u32,
+    ) {
+        if let Some(sprite) = anm.sprites.get(&id) {
+            self.render_sprite(anm, sprite, transform, frame);
+        } else if let Some(shape) = anm.shapes.get(&id) {
+            self.render(shape, transform);
+        }
+    }
+
     fn render_by_id(
         &mut self,
         anm: &Animation,
@@ -49,13 +67,9 @@ pub trait Render {
     ) {
         let transform = reader
             .read_transformation()
-            .expect("transormation should be present")
+            .expect("transformation should be present")
             .combine(parent);
-        if let Some(sprite) = anm.sprites.get(&id) {
-            self.render_sprite(anm, sprite, transform, frame);
-        } else if let Some(shape) = anm.shapes.get(&id) {
-            self.render(shape, transform);
-        }
+        self.render_at(anm, id, transform, frame);
     }
 }
 
