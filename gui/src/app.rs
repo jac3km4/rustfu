@@ -120,11 +120,7 @@ impl AppState {
                     }
                 }
                 UiEvent::SaveAsWebp => {
-                    if let Some(player) = &mut self.player {
-                        let backend = player.backend().clone_with_draw(gfx.create_draw());
-                        let mut tmp = AnimationPlayer::new(backend, player.animation());
-                        tmp.set_sprite(player.current_sprite_id());
-
+                    if let Some(mut tmp) = self.create_temp_player(gfx) {
                         let result = (|| {
                             let Some(path) = FileDialog::new()
                                 .set_file_name("output.webp")
@@ -141,11 +137,7 @@ impl AppState {
                     }
                 }
                 UiEvent::SaveAsFrames => {
-                    if let Some(player) = &mut self.player {
-                        let backend = player.backend().clone_with_draw(gfx.create_draw());
-                        let mut tmp = AnimationPlayer::new(backend, player.animation());
-                        tmp.set_sprite(player.current_sprite_id());
-
+                    if let Some(mut tmp) = self.create_temp_player(gfx) {
                         let result = (|| {
                             let Some(dir) = FileDialog::new().pick_folder() else {
                                 return Ok(());
@@ -204,6 +196,15 @@ impl AppState {
     pub fn update_canvas(&mut self, gfx: &mut Graphics) -> Draw {
         self.handle_events(gfx);
         self.draw(gfx)
+    }
+
+    fn create_temp_player(&self, gfx: &mut Graphics) -> Option<AnimationPlayer<NotanBackend>> {
+        self.player.as_ref().map(|player| {
+            let backend = player.backend().clone_with_draw(gfx.create_draw());
+            let mut tmp = AnimationPlayer::new(backend, player.animation());
+            tmp.set_sprite(player.current_sprite_id());
+            tmp
+        })
     }
 
     fn unwrap_result<A>(&mut self, result: anyhow::Result<A>) -> Option<A> {
